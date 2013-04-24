@@ -1,0 +1,47 @@
+apply plugin: 'maven'
+apply plugin: 'java'
+
+repositories {
+    maven {
+        url "http://s3.amazonaws.com/Minecraft.Download/libraries"
+    }
+    mavenCentral()
+}
+
+group = 'net.minecraft'
+archivesBaseName = 'launchwrapper'
+version = '1.0'
+
+dependencies {
+    compile 'net.sf.jopt-simple:jopt-simple:4.4'
+    compile 'org.ow2.asm:asm-debug-all:4.1'
+    compile 'org.lwjgl.lwjgl:lwjgl:2.8.5'
+}
+
+artifacts {
+    archives jar
+    //archives sourcesJar
+}
+
+def repoDir = new File(projectDir, "repo")
+repoDir.mkdirs()
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "file://" + repoDir.absolutePath)
+
+            pom.project {
+                description 'Minecraft LegacyLauncher'
+                url 'http://github.com/Mojang/LegacyLauncher'
+            }
+        }
+    }
+
+    doLast {
+        // Purge all annoying files that arent needed
+        repoDir.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.(xml|sha1|md5)$/) {
+            it.delete()
+        }
+    }
+}

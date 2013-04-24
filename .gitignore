@@ -1,0 +1,29 @@
+# Eclipse stuff
+.classpath
+.project
+.settings/
+
+# netbeans
+nbproject
+
+# gradle
+.gradle/
+
+# vim
+.*.sw[a-p]
+
+# various other potential build files
+/build/
+/out
+
+# Mac filesystem dust
+.DS_Store
+
+# intellij
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# generated
+/repo/
