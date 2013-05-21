@@ -23,7 +23,6 @@ public class VanillaTweakInjector implements IClassTransformer {
     private static String workDirFieldName;
 
     public VanillaTweakInjector() {
-        System.out.println("Hello from the tweak injector");
     }
 
     @Override
@@ -86,7 +85,6 @@ public class VanillaTweakInjector implements IClassTransformer {
 
     public static File inject(Object minecraftfake) {
 
-        System.out.println("Injector called in the middle of main with object " + minecraftfake);
         try {
             Display.setIcon(new ByteBuffer[]{
                     loadIcon(new File(VanillaTweaker.workDir, "assets/icons/icon_16x16.png")),

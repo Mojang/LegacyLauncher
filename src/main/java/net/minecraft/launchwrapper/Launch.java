@@ -47,7 +47,6 @@ public class Launch {
             {
                 JsonRootNode rootNode = new JdomParser().parse(new FileReader(profile));
                 Launch.profile = rootNode;
-                System.out.println(rootNode);
                 tweakClassName = rootNode.isStringValue("launchwrapper", "tweakclass") ? rootNode.getStringValue("launchwrapper", "tweakclass") : tweakClassName;
             }
             catch (Exception e)
