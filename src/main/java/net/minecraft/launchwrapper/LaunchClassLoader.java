@@ -309,7 +309,7 @@ public class LaunchClassLoader extends URLClassLoader {
         classLoaderExceptions.add(toExclude);
     }
 
-    void addTransformerExclusion(String toExclude) {
+    public void addTransformerExclusion(String toExclude) {
         transformerExceptions.add(toExclude);
     }
 
