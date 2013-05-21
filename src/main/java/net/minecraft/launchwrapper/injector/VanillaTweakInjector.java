@@ -55,7 +55,6 @@ public class VanillaTweakInjector implements IClassTransformer {
         for (FieldNode n : classNode.fields) {
             String fileTypeDescriptor = Type.getDescriptor(File.class);
             if (fileTypeDescriptor.equals(n.desc) && (n.access & ACC_STATIC) != 0) {
-                System.out.printf("Found static field %s of type File\n", n.name);
                 workDirCache = n;
                 break;
             }
@@ -74,9 +73,7 @@ public class VanillaTweakInjector implements IClassTransformer {
             if (insn.getOpcode() == INVOKEVIRTUAL) {
                 MethodInsnNode mins = (MethodInsnNode) insn;
                 if (mins.owner.equals("java/awt/Frame") && mins.name.equals("validate")) {
-                    System.out.printf("methodinsn : %s %s %s\n", mins.owner, mins.name, mins.desc);
                     mainMethod.instructions.insert(insn, mn.instructions);
-                    System.out.println("Injected extra call into method");
                     break;
                 }
             }
