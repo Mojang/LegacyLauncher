@@ -286,7 +286,7 @@ public class LaunchClassLoader extends URLClassLoader {
 
             byte[] buffer = getOrCreateBuffer();
             int read;
-            while ((read = stream.read(buffer, totalLength, BUFFER_SIZE)) != -1) {
+            while ((read = stream.read(buffer, totalLength, totalLength - buffer.length)) != -1) {
                 totalLength += read;
 
                 // Extend our buffer
