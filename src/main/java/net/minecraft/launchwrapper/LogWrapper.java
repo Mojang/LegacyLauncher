@@ -63,7 +63,6 @@ public class LogWrapper {
     }
 
     public static void makeLog(String logChannel) {
-        Logger l = Logger.getLogger(logChannel);
-        l.setParent(log.myLog);
+        Logger.getLogger(logChannel).setParent(log.myLog);
     }
 }

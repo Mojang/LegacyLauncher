@@ -6,13 +6,11 @@ import java.util.List;
 public class VanillaTweaker implements ITweaker {
     public static File workDir;
     private List<String> args;
-    private String profile;
 
     @Override
     public void acceptOptions(List<String> options, File workDir, String profile) {
-        args = options;
-        this.workDir = workDir;
-        this.profile = profile;
+        this.args = options;
+        VanillaTweaker.workDir = workDir;
     }
 
     @Override
@@ -27,6 +25,6 @@ public class VanillaTweaker implements ITweaker {
 
     @Override
     public String[] getLaunchArguments() {
-        return args.toArray(new String[0]);
+        return args.toArray(new String[args.size()]);
     }
 }

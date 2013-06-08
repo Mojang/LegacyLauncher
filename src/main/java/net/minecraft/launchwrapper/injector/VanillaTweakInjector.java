@@ -26,7 +26,7 @@ public class VanillaTweakInjector implements IClassTransformer {
     }
 
     @Override
-    public byte[] transform(String name, String transformedName, byte[] bytes) {
+    public byte[] transform(final String name, final String transformedName, final byte[] bytes) {
         if (bytes == null) {
             return null;
         }
@@ -34,14 +34,14 @@ public class VanillaTweakInjector implements IClassTransformer {
             return bytes;
         }
 
-        ClassNode classNode = new ClassNode();
-        ClassReader classReader = new ClassReader(bytes);
+        final ClassNode classNode = new ClassNode();
+        final ClassReader classReader = new ClassReader(bytes);
         classReader.accept(classNode, ClassReader.EXPAND_FRAMES);
 
         MethodNode mainMethod = null;
-        for (MethodNode m : classNode.methods) {
-            if ("main".equals(m.name)) {
-                mainMethod = m;
+        for (final MethodNode methodNode : classNode.methods) {
+            if ("main".equals(methodNode.name)) {
+                mainMethod = methodNode;
                 break;
             }
         }
@@ -51,40 +51,47 @@ public class VanillaTweakInjector implements IClassTransformer {
         }
 
         FieldNode workDirCache = null;
-        for (FieldNode n : classNode.fields) {
-            String fileTypeDescriptor = Type.getDescriptor(File.class);
-            if (fileTypeDescriptor.equals(n.desc) && (n.access & ACC_STATIC) != 0) {
-                workDirCache = n;
+        for (final FieldNode fieldNode : classNode.fields) {
+            final String fileTypeDescriptor = Type.getDescriptor(File.class);
+            if (fileTypeDescriptor.equals(fieldNode.desc) && (fieldNode.access & ACC_STATIC) == ACC_STATIC) {
+                workDirCache = fieldNode;
                 break;
             }
         }
-        MethodNode mn = new MethodNode();
-        Label l66 = new Label();
-        mn.visitLabel(l66);
-        mn.visitLineNumber(666, l66);
-        mn.visitVarInsn(ALOAD, 12);
-        mn.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "(Ljava/lang/Object;)Ljava/io/File;");
-        mn.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirCache.name, "Ljava/io/File;");
 
-        ListIterator<AbstractInsnNode> iterator = mainMethod.instructions.iterator();
+        // Prepere our injection code
+        final MethodNode methodNode = new MethodNode();
+        final Label label = new Label();
+        methodNode.visitLabel(label);
+        methodNode.visitLineNumber(9001, label); // Linenumber which shows up in the stacktrace
+        // Call the method below
+        methodNode.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;");
+        // Store the result in the workDir variable.
+        methodNode.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirCache.name, "Ljava/io/File;");
+
+        // Find the injection point and insert our code
+        final ListIterator<AbstractInsnNode> iterator = mainMethod.instructions.iterator();
         while (iterator.hasNext()) {
-            AbstractInsnNode insn = iterator.next();
+            final AbstractInsnNode insn = iterator.next();
             if (insn.getOpcode() == INVOKEVIRTUAL) {
-                MethodInsnNode mins = (MethodInsnNode) insn;
+                final MethodInsnNode mins = (MethodInsnNode) insn;
                 if (mins.owner.equals("java/awt/Frame") && mins.name.equals("validate")) {
-                    mainMethod.instructions.insert(insn, mn.instructions);
+                    mainMethod.instructions.insert(insn, methodNode.instructions);
                     break;
                 }
             }
         }
 
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
         classNode.accept(writer);
         return writer.toByteArray();
     }
 
-    public static File inject(Object minecraftfake) {
+    public static File inject() {
+        // Speed up imageloading
+        ImageIO.setUseCache(false);
 
+        // Load icon from disk
         try {
             Display.setIcon(new ByteBuffer[]{
                     loadIcon(new File(VanillaTweaker.workDir, "assets/icons/icon_16x16.png")),
@@ -93,6 +100,8 @@ public class VanillaTweakInjector implements IClassTransformer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Set the workdir, return value will get assigned
         return VanillaTweaker.workDir;
     }
 

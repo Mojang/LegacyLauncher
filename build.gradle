@@ -10,10 +10,10 @@ repositories {
 
 group = 'net.minecraft'
 archivesBaseName = 'launchwrapper'
-version = '1.0'
+version = '1.1'
 
 dependencies {
-    compile 'net.sf.jopt-simple:jopt-simple:4.4'
+    compile 'net.sf.jopt-simple:jopt-simple:4.5'
     compile 'org.ow2.asm:asm-debug-all:4.1'
     compile 'org.lwjgl.lwjgl:lwjgl:2.8.5'
     compile 'argo:argo:2.25_fixed'
