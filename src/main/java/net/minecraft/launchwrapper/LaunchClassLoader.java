@@ -280,13 +280,13 @@ public class LaunchClassLoader extends URLClassLoader {
         return sources;
     }
 
-    private byte[] readFully(final InputStream stream) {
+    private byte[] readFully(InputStream stream) {
         try {
-            int totalLength = 0;
-
             byte[] buffer = getOrCreateBuffer();
+
             int read;
-            while ((read = stream.read(buffer, totalLength, totalLength - buffer.length)) != -1) {
+            int totalLength = 0;
+            while ((read = stream.read(buffer, totalLength, buffer.length - totalLength)) != -1) {
                 totalLength += read;
 
                 // Extend our buffer
