@@ -1,20 +1,17 @@
 package net.minecraft.launchwrapper;
 
-import argo.jdom.JdomParser;
-import argo.jdom.JsonRootNode;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 import java.io.File;
-import java.io.FileReader;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
 import java.util.logging.Level;
 
 public class Launch {
+    private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
     public static File minecraftHome;
-    public static JsonRootNode profile;
 
     public static void main(String[] args) {
         new Launch().launch(args);
@@ -32,14 +29,14 @@ public class Launch {
         parser.allowsUnrecognizedOptions();
 
         final OptionSpec<String> profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
-        final OptionSpec<File> workDirOption = parser.accepts("workDir", "Alternative work directory").withRequiredArg().ofType(File.class);
+        final OptionSpec<File> gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
+        final OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class to load").withRequiredArg().defaultsTo(DEFAULT_TWEAK);
         final OptionSpec<String> nonOption = parser.nonOptions();
 
         final OptionSet options = parser.parse(args);
-        minecraftHome = options.valueOf(workDirOption);
+        minecraftHome = options.valueOf(gameDirOption);
         final String profileName = options.valueOf(profileOption);
-
-        final String tweakClassName = getTweakClassName(minecraftHome, profileName);
+        final String tweakClassName = options.valueOf(tweakClassOption);
 
         try {
             LogWrapper.log(Level.INFO, "Using tweak class name %s", tweakClassName);
@@ -56,22 +53,5 @@ public class Launch {
         } catch (Exception e) {
             LogWrapper.log(Level.SEVERE, e, "Unable to launch");
         }
-    }
-
-    private String getTweakClassName(final File workDir, final String profileName) {
-        final String name = "net.minecraft.launchwrapper.VanillaTweaker";
-
-        // read profile here for extra data
-        final File profile = new File(workDir, String.format("versions/%s/%s.json", profileName, profileName));
-        if (profile.exists()) {
-            try {
-                final JsonRootNode rootNode = new JdomParser().parse(new FileReader(profile));
-                Launch.profile = rootNode;
-                return rootNode.isStringValue("launchwrapper", "tweakclass") ? rootNode.getStringValue("launchwrapper", "tweakclass") : name;
-            } catch (Exception ignored) {
-            }
-        }
-
-        return name;
     }
 }
