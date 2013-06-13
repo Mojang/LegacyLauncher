@@ -12,6 +12,7 @@ import java.util.logging.Level;
 public class Launch {
     private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
     public static File minecraftHome;
+    public static File assetsDir;
 
     public static void main(String[] args) {
         new Launch().launch(args);
@@ -30,11 +31,13 @@ public class Launch {
 
         final OptionSpec<String> profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
         final OptionSpec<File> gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
+        final OptionSpec<File> assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
         final OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class to load").withRequiredArg().defaultsTo(DEFAULT_TWEAK);
         final OptionSpec<String> nonOption = parser.nonOptions();
 
         final OptionSet options = parser.parse(args);
         minecraftHome = options.valueOf(gameDirOption);
+        assetsDir = options.valueOf(assetsDirOption);
         final String profileName = options.valueOf(profileOption);
         final String tweakClassName = options.valueOf(tweakClassOption);
 
@@ -42,7 +45,7 @@ public class Launch {
             LogWrapper.log(Level.INFO, "Using tweak class name %s", tweakClassName);
 
             final ITweaker tweaker = (ITweaker) Class.forName(tweakClassName, true, classLoader).newInstance();
-            tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, profileName);
+            tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
             tweaker.injectIntoClassLoader(classLoader);
 
             final Class<?> clazz = Class.forName(tweaker.getLaunchTarget(), false, classLoader);

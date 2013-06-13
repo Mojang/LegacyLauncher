@@ -4,13 +4,16 @@ import java.io.File;
 import java.util.List;
 
 public class VanillaTweaker implements ITweaker {
-    public static File workDir;
+    public static File gameDir;
+    public static File assetsDir;
+
     private List<String> args;
 
     @Override
-    public void acceptOptions(List<String> options, File workDir, String profile) {
-        this.args = options;
-        VanillaTweaker.workDir = workDir;
+    public void acceptOptions(List<String> args, File gameDir, File assetsDir, String profile) {
+        this.args = args;
+        VanillaTweaker.gameDir = gameDir;
+        VanillaTweaker.assetsDir = assetsDir;
     }
 
     @Override

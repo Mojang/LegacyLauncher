@@ -50,11 +50,11 @@ public class VanillaTweakInjector implements IClassTransformer {
             return bytes;
         }
 
-        FieldNode workDirCache = null;
+        FieldNode workDirNode = null;
         for (final FieldNode fieldNode : classNode.fields) {
             final String fileTypeDescriptor = Type.getDescriptor(File.class);
             if (fileTypeDescriptor.equals(fieldNode.desc) && (fieldNode.access & ACC_STATIC) == ACC_STATIC) {
-                workDirCache = fieldNode;
+                workDirNode = fieldNode;
                 break;
             }
         }
@@ -67,7 +67,7 @@ public class VanillaTweakInjector implements IClassTransformer {
         // Call the method below
         methodNode.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;");
         // Store the result in the workDir variable.
-        methodNode.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirCache.name, "Ljava/io/File;");
+        methodNode.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;");
 
         // Find the injection point and insert our code
         final ListIterator<AbstractInsnNode> iterator = mainMethod.instructions.iterator();
@@ -89,20 +89,25 @@ public class VanillaTweakInjector implements IClassTransformer {
 
     public static File inject() {
         // Speed up imageloading
+        System.out.println("Turning of ImageIO disk-caching");
         ImageIO.setUseCache(false);
 
         // Load icon from disk
         try {
+            final File smallIcon = new File(VanillaTweaker.assetsDir, "icons/icon_16x16.png");
+            final File bigIcon = new File(VanillaTweaker.assetsDir, "icons/icon_32x32.png");
+            System.out.println("Loading current icons for window from: " + smallIcon + " and " + bigIcon);
             Display.setIcon(new ByteBuffer[]{
-                    loadIcon(new File(VanillaTweaker.workDir, "assets/icons/icon_16x16.png")),
-                    loadIcon(new File(VanillaTweaker.workDir, "assets/icons/icon_32x32.png"))
+                    loadIcon(smallIcon),
+                    loadIcon(bigIcon)
             });
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         // Set the workdir, return value will get assigned
-        return VanillaTweaker.workDir;
+        System.out.println("Setting gameDir to:" + VanillaTweaker.gameDir);
+        return VanillaTweaker.gameDir;
     }
 
     private static ByteBuffer loadIcon(final File iconFile) throws IOException {
