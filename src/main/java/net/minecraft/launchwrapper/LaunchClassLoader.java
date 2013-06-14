@@ -319,7 +319,7 @@ public class LaunchClassLoader extends URLClassLoader {
         return Collections.unmodifiableList(transformers);
     }
 
-    private void addClassLoaderExclusion(String toExclude) {
+    public void addClassLoaderExclusion(String toExclude) {
         classLoaderExceptions.add(toExclude);
     }
 
