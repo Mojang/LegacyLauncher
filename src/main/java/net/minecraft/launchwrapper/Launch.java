@@ -44,6 +44,8 @@ public class Launch {
         try {
             LogWrapper.log(Level.INFO, "Using tweak class name %s", tweakClassName);
 
+            // Ensure we allow the tweak class to load with the parent classloader
+            classLoader.addClassLoaderExclusion(tweakClassName.substring(0,tweakClassName.lastIndexOf('.')));
             final ITweaker tweaker = (ITweaker) Class.forName(tweakClassName, true, classLoader).newInstance();
             tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
             tweaker.injectIntoClassLoader(classLoader);
