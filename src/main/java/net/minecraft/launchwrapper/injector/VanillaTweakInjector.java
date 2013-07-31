@@ -10,10 +10,14 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 import java.util.ListIterator;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -59,7 +63,7 @@ public class VanillaTweakInjector implements IClassTransformer {
             }
         }
 
-        // Prepere our injection code
+        // Prepare our injection code
         final MethodNode methodNode = new MethodNode();
         final Label label = new Label();
         methodNode.visitLabel(label);
@@ -101,6 +105,19 @@ public class VanillaTweakInjector implements IClassTransformer {
                     loadIcon(smallIcon),
                     loadIcon(bigIcon)
             });
+            Frame[] frames = Frame.getFrames();
+
+            if (frames != null) {
+                final List<Image> icons = Arrays.<Image>asList(ImageIO.read(smallIcon), ImageIO.read(bigIcon));
+
+                for (Frame frame : frames) {
+                    try {
+                        frame.setIconImages(icons);
+                    } catch (Throwable throwable) {
+                        throwable.printStackTrace();
+                    }
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
