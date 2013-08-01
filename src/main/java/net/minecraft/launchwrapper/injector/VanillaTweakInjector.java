@@ -10,7 +10,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -64,25 +63,21 @@ public class VanillaTweakInjector implements IClassTransformer {
         }
 
         // Prepare our injection code
-        final MethodNode methodNode = new MethodNode();
+        final MethodNode injectedMethod = new MethodNode();
         final Label label = new Label();
-        methodNode.visitLabel(label);
-        methodNode.visitLineNumber(9001, label); // Linenumber which shows up in the stacktrace
+        injectedMethod.visitLabel(label);
+        injectedMethod.visitLineNumber(9001, label); // Linenumber which shows up in the stacktrace
         // Call the method below
-        methodNode.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;");
+        injectedMethod.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;");
         // Store the result in the workDir variable.
-        methodNode.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;");
+        injectedMethod.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;");
 
         // Find the injection point and insert our code
         final ListIterator<AbstractInsnNode> iterator = mainMethod.instructions.iterator();
         while (iterator.hasNext()) {
             final AbstractInsnNode insn = iterator.next();
-            if (insn.getOpcode() == INVOKEVIRTUAL) {
-                final MethodInsnNode mins = (MethodInsnNode) insn;
-                if (mins.owner.equals("java/awt/Frame") && mins.name.equals("validate")) {
-                    mainMethod.instructions.insert(insn, methodNode.instructions);
-                    break;
-                }
+            if (insn.getOpcode() == RETURN) {
+                mainMethod.instructions.insertBefore(insn, injectedMethod.instructions);
             }
         }
 
@@ -96,8 +91,16 @@ public class VanillaTweakInjector implements IClassTransformer {
         System.out.println("Turning of ImageIO disk-caching");
         ImageIO.setUseCache(false);
 
-        // Load icon from disk
+            loadIconsOnFrames();
+
+        // Set the workdir, return value will get assigned
+        System.out.println("Setting gameDir to:" + VanillaTweaker.gameDir);
+        return VanillaTweaker.gameDir;
+    }
+
+    public static void loadIconsOnFrames() {
         try {
+            // Load icon from disk
             final File smallIcon = new File(VanillaTweaker.assetsDir, "icons/icon_16x16.png");
             final File bigIcon = new File(VanillaTweaker.assetsDir, "icons/icon_32x32.png");
             System.out.println("Loading current icons for window from: " + smallIcon + " and " + bigIcon);
@@ -121,10 +124,6 @@ public class VanillaTweakInjector implements IClassTransformer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        // Set the workdir, return value will get assigned
-        System.out.println("Setting gameDir to:" + VanillaTweaker.gameDir);
-        return VanillaTweaker.gameDir;
     }
 
     private static ByteBuffer loadIcon(final File iconFile) throws IOException {
