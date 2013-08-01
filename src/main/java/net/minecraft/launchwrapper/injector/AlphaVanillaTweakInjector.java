@@ -1,39 +1,23 @@
 package net.minecraft.launchwrapper.injector;
 
+import net.minecraft.launchwrapper.AlphaVanillaTweaker;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.VanillaTweaker;
-import org.lwjgl.opengl.Display;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.applet.Applet;
 import java.applet.AppletStub;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.List;
-
-import static org.objectweb.asm.Opcodes.*;
 
 public class AlphaVanillaTweakInjector implements IClassTransformer {
     private static String minecraftClass;
@@ -56,7 +40,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
         for (Field field : clazz.getDeclaredFields()) {
             String name = field.getType().getName();
 
-            if (!name.contains(".")) {
+            if (!name.contains("awt") && !name.contains("java")) {
                 System.out.println("Found likely Minecraft candidate: " + field);
 
                 Field fileField = getWorkingDirField(name);
@@ -157,7 +141,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
             }
         });
 
-        VanillaTweakInjector.loadIconsOnFrames();
+        VanillaTweakInjector.loadIconsOnFrames(AlphaVanillaTweaker.assetsDir);
     }
 
     private static Class<?> getaClass(String name) throws ClassNotFoundException {

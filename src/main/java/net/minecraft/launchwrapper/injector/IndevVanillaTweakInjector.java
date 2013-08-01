@@ -1,0 +1,102 @@
+package net.minecraft.launchwrapper.injector;
+
+import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.IndevVanillaTweaker;
+import net.minecraft.launchwrapper.VanillaTweaker;
+import org.objectweb.asm.*;
+import org.objectweb.asm.tree.*;
+
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.util.ListIterator;
+
+import static org.objectweb.asm.Opcodes.*;
+
+public class IndevVanillaTweakInjector implements IClassTransformer {
+
+    private static String workDirFieldName;
+
+    public IndevVanillaTweakInjector() {
+    }
+
+    @Override
+    public byte[] transform(final String name, final String transformedName, final byte[] bytes) {
+        if (bytes == null) {
+            return null;
+        }
+
+        if (name.equals("net.minecraft.client.d")) {
+            String beep = name.toLowerCase();
+        }
+
+        final ClassNode classNode = new ClassNode();
+        final ClassReader classReader = new ClassReader(bytes);
+        classReader.accept(classNode, ClassReader.EXPAND_FRAMES);
+
+        if (!classNode.interfaces.contains("java/lang/Runnable")) {
+            return bytes;
+        }
+
+        MethodNode runMethod = null;
+        for (final MethodNode methodNode : classNode.methods) {
+            if ("run".equals(methodNode.name)) {
+                runMethod = methodNode;
+                break;
+            }
+        }
+        if (runMethod == null) {
+            // WTF? We got no main method
+            return bytes;
+        }
+
+        System.out.println("Probably the minecraft class (it has run && is applet!): " + name);
+
+        final ListIterator<AbstractInsnNode> iterator = runMethod.instructions.iterator();
+        int firstSwitchJump = -1;
+
+        while (iterator.hasNext()) {
+            AbstractInsnNode instruction = iterator.next();
+
+            if (instruction.getOpcode() == TABLESWITCH) {
+                TableSwitchInsnNode tableSwitchInsnNode = (TableSwitchInsnNode) instruction;
+
+                firstSwitchJump = runMethod.instructions.indexOf(tableSwitchInsnNode.labels.get(0));
+            } else if (firstSwitchJump >= 0 && runMethod.instructions.indexOf(instruction) == firstSwitchJump) {
+                int endOfSwitch = -1;
+                while (iterator.hasNext()) {
+                    instruction = iterator.next();
+                    if (instruction.getOpcode() == GOTO) {
+                        endOfSwitch = runMethod.instructions.indexOf(((JumpInsnNode) instruction).label);
+                        break;
+                    }
+                }
+
+                if (endOfSwitch >= 0) {
+                    while (runMethod.instructions.indexOf(instruction) != endOfSwitch && iterator.hasNext()) {
+                        instruction = iterator.next();
+                    }
+
+                    instruction = iterator.next();
+                    runMethod.instructions.insertBefore(instruction, new MethodInsnNode(INVOKESTATIC, "net/minecraft/launchwrapper/injector/IndevVanillaTweakInjector", "inject", "()Ljava/io/File;"));
+                    runMethod.instructions.insertBefore(instruction, new VarInsnNode(ASTORE, 2));
+                }
+            }
+        }
+
+        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+        classNode.accept(writer);
+        return writer.toByteArray();
+    }
+
+    public static File inject() {
+        // Speed up imageloading
+        System.out.println("Turning of ImageIO disk-caching");
+        ImageIO.setUseCache(false);
+
+        VanillaTweakInjector.loadIconsOnFrames(IndevVanillaTweaker.assetsDir);
+
+        // Set the workdir, return value will get assigned
+        System.out.println("Setting gameDir to: " + IndevVanillaTweaker.gameDir);
+        return IndevVanillaTweaker.gameDir;
+    }
+}

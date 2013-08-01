@@ -91,18 +91,18 @@ public class VanillaTweakInjector implements IClassTransformer {
         System.out.println("Turning of ImageIO disk-caching");
         ImageIO.setUseCache(false);
 
-            loadIconsOnFrames();
+        loadIconsOnFrames(VanillaTweaker.assetsDir);
 
         // Set the workdir, return value will get assigned
-        System.out.println("Setting gameDir to:" + VanillaTweaker.gameDir);
+        System.out.println("Setting gameDir to: " + VanillaTweaker.gameDir);
         return VanillaTweaker.gameDir;
     }
 
-    public static void loadIconsOnFrames() {
+    public static void loadIconsOnFrames(File assetsDir) {
         try {
             // Load icon from disk
-            final File smallIcon = new File(VanillaTweaker.assetsDir, "icons/icon_16x16.png");
-            final File bigIcon = new File(VanillaTweaker.assetsDir, "icons/icon_32x32.png");
+            final File smallIcon = new File(assetsDir, "icons/icon_16x16.png");
+            final File bigIcon = new File(assetsDir, "icons/icon_32x32.png");
             System.out.println("Loading current icons for window from: " + smallIcon + " and " + bigIcon);
             Display.setIcon(new ByteBuffer[]{
                     loadIcon(smallIcon),
