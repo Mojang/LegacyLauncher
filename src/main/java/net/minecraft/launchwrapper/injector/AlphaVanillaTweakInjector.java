@@ -20,9 +20,6 @@ import java.net.URL;
 import java.util.*;
 
 public class AlphaVanillaTweakInjector implements IClassTransformer {
-    private static String minecraftClass;
-    private static String minecraftField;
-
     public AlphaVanillaTweakInjector() {
     }
 
@@ -141,7 +138,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
             }
         });
 
-        VanillaTweakInjector.loadIconsOnFrames(AlphaVanillaTweaker.assetsDir);
+        VanillaTweakInjector.loadIconsOnFrames();
     }
 
     private static Class<?> getaClass(String name) throws ClassNotFoundException {

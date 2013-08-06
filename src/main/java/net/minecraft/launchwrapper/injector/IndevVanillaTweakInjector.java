@@ -2,6 +2,7 @@ package net.minecraft.launchwrapper.injector;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.IndevVanillaTweaker;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.VanillaTweaker;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
@@ -13,9 +14,6 @@ import java.util.ListIterator;
 import static org.objectweb.asm.Opcodes.*;
 
 public class IndevVanillaTweakInjector implements IClassTransformer {
-
-    private static String workDirFieldName;
-
     public IndevVanillaTweakInjector() {
     }
 
@@ -93,10 +91,10 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
         System.out.println("Turning of ImageIO disk-caching");
         ImageIO.setUseCache(false);
 
-        VanillaTweakInjector.loadIconsOnFrames(IndevVanillaTweaker.assetsDir);
+        VanillaTweakInjector.loadIconsOnFrames();
 
         // Set the workdir, return value will get assigned
-        System.out.println("Setting gameDir to: " + IndevVanillaTweaker.gameDir);
-        return IndevVanillaTweaker.gameDir;
+        System.out.println("Setting gameDir to: " + Launch.minecraftHome);
+        return Launch.minecraftHome;
     }
 }

@@ -1,6 +1,7 @@
 package net.minecraft.launchwrapper.injector;
 
 import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.VanillaTweaker;
 import org.lwjgl.opengl.Display;
 import org.objectweb.asm.ClassReader;
@@ -22,9 +23,6 @@ import java.util.ListIterator;
 import static org.objectweb.asm.Opcodes.*;
 
 public class VanillaTweakInjector implements IClassTransformer {
-
-    private static String workDirFieldName;
-
     public VanillaTweakInjector() {
     }
 
@@ -91,18 +89,18 @@ public class VanillaTweakInjector implements IClassTransformer {
         System.out.println("Turning of ImageIO disk-caching");
         ImageIO.setUseCache(false);
 
-        loadIconsOnFrames(VanillaTweaker.assetsDir);
+        loadIconsOnFrames();
 
         // Set the workdir, return value will get assigned
-        System.out.println("Setting gameDir to: " + VanillaTweaker.gameDir);
-        return VanillaTweaker.gameDir;
+        System.out.println("Setting gameDir to: " + Launch.minecraftHome);
+        return Launch.minecraftHome;
     }
 
-    public static void loadIconsOnFrames(File assetsDir) {
+    public static void loadIconsOnFrames() {
         try {
             // Load icon from disk
-            final File smallIcon = new File(assetsDir, "icons/icon_16x16.png");
-            final File bigIcon = new File(assetsDir, "icons/icon_32x32.png");
+            final File smallIcon = new File(Launch.assetsDir, "icons/icon_16x16.png");
+            final File bigIcon = new File(Launch.assetsDir, "icons/icon_32x32.png");
             System.out.println("Loading current icons for window from: " + smallIcon + " and " + bigIcon);
             Display.setIcon(new ByteBuffer[]{
                     loadIcon(smallIcon),
