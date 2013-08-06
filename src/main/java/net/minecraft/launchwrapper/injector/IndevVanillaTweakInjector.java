@@ -23,10 +23,6 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
             return null;
         }
 
-        if (name.equals("net.minecraft.client.d")) {
-            String beep = name.toLowerCase();
-        }
-
         final ClassNode classNode = new ClassNode();
         final ClassReader classReader = new ClassReader(bytes);
         classReader.accept(classNode, ClassReader.EXPAND_FRAMES);

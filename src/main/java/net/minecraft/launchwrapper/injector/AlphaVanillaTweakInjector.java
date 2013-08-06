@@ -1,9 +1,7 @@
 package net.minecraft.launchwrapper.injector;
 
-import net.minecraft.launchwrapper.AlphaVanillaTweaker;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraft.launchwrapper.VanillaTweaker;
 
 import javax.swing.*;
 import java.applet.Applet;
@@ -17,7 +15,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AlphaVanillaTweakInjector implements IClassTransformer {
     public AlphaVanillaTweakInjector() {
@@ -29,7 +28,14 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
     }
 
     public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Class clazz = getaClass("net.minecraft.client.MinecraftApplet");
+        Class clazz;
+
+        try {
+            clazz = getaClass("net.minecraft.client.MinecraftApplet");
+        } catch (ClassNotFoundException ignored) {
+            clazz = getaClass("com.mojang.minecraft.MinecraftApplet");
+        }
+
         System.out.println("AlphaVanillaTweakInjector.class.getClassLoader() = " + AlphaVanillaTweakInjector.class.getClassLoader());
         Constructor constructor = clazz.getConstructor();
         Object object = constructor.newInstance();
@@ -37,7 +43,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
         for (Field field : clazz.getDeclaredFields()) {
             String name = field.getType().getName();
 
-            if (!name.contains("awt") && !name.contains("java")) {
+            if (!name.contains("awt") && !name.contains("java") && !name.equals("long")) {
                 System.out.println("Found likely Minecraft candidate: " + field);
 
                 Field fileField = getWorkingDirField(name);
@@ -99,6 +105,16 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
 
             @Override
             public URL getDocumentBase() {
+                try {
+                    return new URL("http://www.minecraft.net/game/");
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            public URL getCodeBase() {
                 try {
                     return new URL("http://www.minecraft.net/game/");
                 } catch (MalformedURLException e) {
