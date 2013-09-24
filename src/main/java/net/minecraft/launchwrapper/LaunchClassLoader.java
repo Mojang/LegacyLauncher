@@ -27,6 +27,9 @@ public class LaunchClassLoader extends URLClassLoader {
     private Set<String> classLoaderExceptions = new HashSet<String>();
     private Set<String> transformerExceptions = new HashSet<String>();
     private Map<Package, Manifest> packageManifests = new HashMap<Package, Manifest>();
+    private Map<String,byte[]> resourceCache = new HashMap<String,byte[]>(1000);
+    private Set<String> negativeResourceCache = new HashSet<String>();
+
     private IClassNameTransformer renameTransformer;
 
     private static final Manifest EMPTY = new Manifest();
@@ -119,6 +122,10 @@ public class LaunchClassLoader extends URLClassLoader {
 
         try {
             final String transformedName = transformName(name);
+            if (cachedClasses.containsKey(transformedName)) {
+                return cachedClasses.get(transformedName);
+            }
+
             final String untransformedName = untransformName(name);
 
             final int lastDot = untransformedName.lastIndexOf('.');
@@ -254,14 +261,14 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private byte[] runTransformers(final String name, final String transformedName, byte[] basicClass) {
         if (DEBUG_FINER) {
-            LogWrapper.finest("Beginning transform of %s (%s) Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+            LogWrapper.finest("Beginning transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
-                LogWrapper.finest("Before Transformer %s: %d", transName, (basicClass == null ? 0 : basicClass.length));
+                LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
                 basicClass = transformer.transform(name, transformedName, basicClass);
-                LogWrapper.finest("After  Transformer %s: %d", transName, (basicClass == null ? 0 : basicClass.length));
+                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
             }
-            LogWrapper.finest("Ending transform of %s (%s) Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+            LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
         } else {
             for (final IClassTransformer transformer : transformers) {
                 basicClass = transformer.transform(name, transformedName, basicClass);
@@ -328,11 +335,17 @@ public class LaunchClassLoader extends URLClassLoader {
     }
 
     public byte[] getClassBytes(String name) throws IOException {
+        if (negativeResourceCache.contains(name)) {
+            return null;
+        } else if (resourceCache.containsKey(name)) {
+            return resourceCache.get(name);
+        }
         if (name.indexOf('.') == -1) {
             for (final String reservedName : RESERVED_NAMES) {
                 if (name.toUpperCase(Locale.ENGLISH).startsWith(reservedName)) {
                     final byte[] data = getClassBytes("_" + name);
                     if (data != null) {
+                        resourceCache.put(name, data);
                         return data;
                     }
                 }
@@ -346,12 +359,15 @@ public class LaunchClassLoader extends URLClassLoader {
 
             if (classResource == null) {
                 if (DEBUG) LogWrapper.finest("Failed to find class resource %s", resourcePath);
+                negativeResourceCache.add(name);
                 return null;
             }
             classStream = classResource.openStream();
 
             if (DEBUG) LogWrapper.finest("Loading class %s from resource %s", name, classResource.toString());
-            return readFully(classStream);
+            final byte[] data = readFully(classStream);
+            resourceCache.put(name, data);
+            return data;
         } finally {
             closeSilently(classStream);
         }
