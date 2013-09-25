@@ -381,4 +381,9 @@ public class LaunchClassLoader extends URLClassLoader {
             }
         }
     }
+
+    public void clearNegativeEntries(Set<String> entriesToClear)
+    {
+        negativeResourceCache.removeAll(entriesToClear);
+    }
 }
