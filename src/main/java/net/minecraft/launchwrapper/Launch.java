@@ -83,6 +83,8 @@ public class Launch {
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
                         LogWrapper.log(Level.WARNING, "Tweak class name %s has already been visited -- skipping", tweakName);
+                        // remove the tweaker from the stack otherwise it will create an infinite loop
+                        it.remove();
                         continue;
                     } else {
                         allTweakerNames.add(tweakName);
