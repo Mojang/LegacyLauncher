@@ -2,7 +2,6 @@ package net.minecraft.launchwrapper.injector;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraft.launchwrapper.VanillaTweaker;
 import org.lwjgl.opengl.Display;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ListIterator;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -70,14 +68,8 @@ public class VanillaTweakInjector implements IClassTransformer {
         // Store the result in the workDir variable.
         injectedMethod.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;");
 
-        // Find the injection point and insert our code
-        final ListIterator<AbstractInsnNode> iterator = mainMethod.instructions.iterator();
-        while (iterator.hasNext()) {
-            final AbstractInsnNode insn = iterator.next();
-            if (insn.getOpcode() == RETURN) {
-                mainMethod.instructions.insertBefore(insn, injectedMethod.instructions);
-            }
-        }
+        // Insert our code
+        mainMethod.instructions.insert(injectedMethod.instructions);
 
         final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
         classNode.accept(writer);
