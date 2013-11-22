@@ -21,11 +21,13 @@ public class LaunchClassLoader extends URLClassLoader {
     private ClassLoader parent = getClass().getClassLoader();
 
     private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
+    private List<IClassTransformationListener> transformationListeners = new ArrayList<IClassTransformationListener>(1);
     private Map<String, Class> cachedClasses = new HashMap<String, Class>(1000);
     private Set<String> invalidClasses = new HashSet<String>(1000);
 
     private Set<String> classLoaderExceptions = new HashSet<String>();
     private Set<String> transformerExceptions = new HashSet<String>();
+    private List<ITransformerExceptionOverride> transformerExemptExceptions = new ArrayList<ITransformerExceptionOverride>();
     private Map<Package, Manifest> packageManifests = new HashMap<Package, Manifest>();
     private Map<String,byte[]> resourceCache = new HashMap<String,byte[]>(1000);
     private Set<String> negativeResourceCache = new HashSet<String>();
@@ -90,6 +92,17 @@ public class LaunchClassLoader extends URLClassLoader {
             LogWrapper.log(Level.SEVERE, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
         }
     }
+    
+    public void registerTransformer(IClassTransformer transformer) {
+        transformers.add(transformer);
+        if (transformer instanceof IClassNameTransformer && renameTransformer == null) {
+            renameTransformer = (IClassNameTransformer) transformer;
+        }
+    }
+
+    public void registerListener(IClassTransformationListener listener) {
+    	transformationListeners.add(listener);
+    }
 
     @Override
     public Class<?> findClass(final String name) throws ClassNotFoundException {
@@ -107,8 +120,14 @@ public class LaunchClassLoader extends URLClassLoader {
             return cachedClasses.get(name);
         }
 
+        exceptions:
         for (final String exception : transformerExceptions) {
             if (name.startsWith(exception)) {
+            	for (final ITransformerExceptionOverride counterException : transformerExemptExceptions) {
+            	    if (counterException.ignoreException(name)) {
+            	        break exceptions;
+            	    }
+            	}
                 try {
                     final Class<?> clazz = super.findClass(name);
                     cachedClasses.put(name, clazz);
@@ -265,13 +284,31 @@ public class LaunchClassLoader extends URLClassLoader {
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
                 LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
-                basicClass = transformer.transform(name, transformedName, basicClass);
-                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                byte[] transformedClass = transformer.transform(name, transformedName, basicClass);
+                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, transformedClass == null ? 0 : transformedClass .length));
+                if(transformedClass != basicClass) {
+                    for (final IClassTransformationListener listener: transformationListeners) {
+                    	listener.listen(name, transformedName, transformer, basicClass, transformedClass);
+                    }
+                    basicClass = transformedClass;
+                }
+            }
+            for (final IClassTransformationListener listener: transformationListeners) {
+            	final String listenName = listener.getClass().getName();
+            	LogWrapper.finest("Before Listener {%s (%s)} %s: %d", name, transformedName, listenName, (basicClass == null ? 0 : basicClass.length));
+            	basicClass = listener.finishedTransforming(name, transformedName, basicClass);
+            	LogWrapper.finest("After  Listener {%s (%s)} %s: %d", name, transformedName, listenName, (basicClass == null ? 0 : basicClass.length));
             }
             LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
         } else {
             for (final IClassTransformer transformer : transformers) {
-                basicClass = transformer.transform(name, transformedName, basicClass);
+            	byte[] transformedClass = transformer.transform(name, transformedName, basicClass);
+            	for (final IClassTransformationListener listener: transformationListeners) {
+                	listener.listen(name, transformedName, transformer, basicClass, transformedClass);
+                }
+            }
+            for (final IClassTransformationListener listener: transformationListeners) {
+            	basicClass = listener.finishedTransforming(name, transformedName, basicClass);
             }
         }
         return basicClass;
@@ -326,12 +363,20 @@ public class LaunchClassLoader extends URLClassLoader {
         return Collections.unmodifiableList(transformers);
     }
 
+    public List<IClassTransformationListener> getListeners() {
+        return Collections.unmodifiableList(transformationListeners);
+    }
+
     public void addClassLoaderExclusion(String toExclude) {
         classLoaderExceptions.add(toExclude);
     }
 
     public void addTransformerExclusion(String toExclude) {
         transformerExceptions.add(toExclude);
+    }
+
+    public void addTransformerExcusionExeption(ITransformerExceptionOverride unExclude) {
+    	transformerExemptExceptions.add(unExclude);
     }
 
     public byte[] getClassBytes(String name) throws IOException {
