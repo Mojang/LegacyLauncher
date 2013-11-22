@@ -285,7 +285,7 @@ public class LaunchClassLoader extends URLClassLoader {
                 final String transName = transformer.getClass().getName();
                 LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
                 byte[] transformedClass = transformer.transform(name, transformedName, basicClass);
-                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, transformedClass == null ? 0 : transformedClass .length));
                 if(transformedClass != basicClass) {
                     for (final IClassTransformationListener listener: transformationListeners) {
                     	listener.listen(name, transformedName, transformer, basicClass, transformedClass);
