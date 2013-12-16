@@ -1,9 +1,7 @@
 package net.minecraft.launchwrapper.injector;
 
 import net.minecraft.launchwrapper.IClassTransformer;
-import net.minecraft.launchwrapper.IndevVanillaTweaker;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraft.launchwrapper.VanillaTweaker;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 

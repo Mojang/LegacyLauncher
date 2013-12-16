@@ -68,7 +68,7 @@ public class Launch {
         // The 'definitive' list of tweakers
         final List<ITweaker> allTweakers = new ArrayList<ITweaker>();
         try {
-            final List<ITweaker> tweakers = new ArrayList(tweakClassNames.size() + 1);
+            final List<ITweaker> tweakers = new ArrayList<ITweaker>(tweakClassNames.size() + 1);
             // The list of tweak instances - may be useful for interoperability
             blackboard.put("Tweaks", tweakers);
             // The primary tweaker (the first one specified on the command line) will actually

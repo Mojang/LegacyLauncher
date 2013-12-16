@@ -28,7 +28,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
     }
 
     public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Class clazz;
+        Class<?> clazz;
 
         try {
             clazz = getaClass("net.minecraft.client.MinecraftApplet");
@@ -37,7 +37,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
         }
 
         System.out.println("AlphaVanillaTweakInjector.class.getClassLoader() = " + AlphaVanillaTweakInjector.class.getClassLoader());
-        Constructor constructor = clazz.getConstructor();
+        Constructor<?> constructor = clazz.getConstructor();
         Object object = constructor.newInstance();
 
         for (Field field : clazz.getDeclaredFields()) {
@@ -94,6 +94,8 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
 
 
         class LauncherFake extends Applet implements AppletStub {
+            private static final long serialVersionUID = 1L;
+
             public void appletResize(int width, int height) {
                 // Actually empty as well
             }

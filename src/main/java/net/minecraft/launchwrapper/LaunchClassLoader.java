@@ -22,7 +22,7 @@ public class LaunchClassLoader extends URLClassLoader {
     private ClassLoader parent = getClass().getClassLoader();
 
     private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
-    private Map<String, Class> cachedClasses = new HashMap<String, Class>(1000);
+    private Map<String, Class<?>> cachedClasses = new HashMap<String, Class<?>>(1000);
     private Set<String> invalidClasses = new HashSet<String>(1000);
 
     private Set<String> classLoaderExceptions = new HashSet<String>();
