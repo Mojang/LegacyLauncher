@@ -15,14 +15,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
+
+import org.apache.logging.log4j.Level;
 
 public class Launch {
     private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
     public static File minecraftHome;
     public static File assetsDir;
     public static Map<String,Object> blackboard;
-    
+
     public static void main(String[] args) {
         new Launch().launch(args);
     }
@@ -57,7 +58,7 @@ public class Launch {
         // By making this object discoverable and accessible it's possible to perform
         // things like cascading of tweakers
         blackboard.put("TweakClasses", tweakClassNames);
-        
+
         // This argument list will be constructed from all tweakers. It is visible here so
         // all tweakers can figure out if a particular argument is present, and add it if not
         blackboard.put("ArgumentList", argumentList);
@@ -75,14 +76,14 @@ public class Launch {
             ITweaker primaryTweaker = null;
             // This loop will terminate, unless there is some sort of pathological tweaker
             // that reinserts itself with a new identity every pass
-            // It is here to allow tweakers to "push" new tweak classes onto the 'stack' of 
+            // It is here to allow tweakers to "push" new tweak classes onto the 'stack' of
             // tweakers to evaluate allowing for cascaded discovery and injection of tweakers
             do {
                 for (final Iterator<String> it = tweakClassNames.iterator(); it.hasNext(); ) {
                     final String tweakName = it.next();
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
-                        LogWrapper.log(Level.WARNING, "Tweak class name %s has already been visited -- skipping", tweakName);
+                        LogWrapper.log(Level.WARN, "Tweak class name %s has already been visited -- skipping", tweakName);
                         // remove the tweaker from the stack otherwise it will create an infinite loop
                         it.remove();
                         continue;
@@ -90,12 +91,12 @@ public class Launch {
                         allTweakerNames.add(tweakName);
                     }
                     LogWrapper.log(Level.INFO, "Loading tweak class name %s", tweakName);
-        
+
                     // Ensure we allow the tweak class to load with the parent classloader
                     classLoader.addClassLoaderExclusion(tweakName.substring(0,tweakName.lastIndexOf('.')));
                     final ITweaker tweaker = (ITweaker) Class.forName(tweakName, true, classLoader).newInstance();
                     tweakers.add(tweaker);
-                    
+
                     // Remove the tweaker from the list of tweaker names we've processed this pass
                     it.remove();
                     // If we haven't visited a tweaker yet, the first will become the 'primary' tweaker
@@ -104,7 +105,7 @@ public class Launch {
                         primaryTweaker = tweaker;
                     }
                 }
-                
+
                 // Now, iterate all the tweakers we just instantiated
                 for (final Iterator<ITweaker> it = tweakers.iterator(); it.hasNext(); ) {
                     final ITweaker tweaker = it.next();
@@ -123,7 +124,7 @@ public class Launch {
             for (final ITweaker tweaker : allTweakers) {
                 argumentList.addAll(Arrays.asList(tweaker.getLaunchArguments()));
             }
-            
+
             // Finally we turn to the primary tweaker, and let it tell us where to go to launch
             final String launchTarget = primaryTweaker.getLaunchTarget();
             final Class<?> clazz = Class.forName(launchTarget, false, classLoader);
@@ -132,7 +133,7 @@ public class Launch {
             LogWrapper.info("Launching wrapped minecraft {%s}", launchTarget);
             mainMethod.invoke(null, (Object) argumentList.toArray(new String[argumentList.size()]));
         } catch (Exception e) {
-            LogWrapper.log(Level.SEVERE, e, "Unable to launch");
+            LogWrapper.log(Level.ERROR, e, "Unable to launch");
         }
     }
 }

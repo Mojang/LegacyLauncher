@@ -13,7 +13,8 @@ import java.util.jar.Attributes.Name;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.logging.Level;
+
+import org.apache.logging.log4j.Level;
 
 public class LaunchClassLoader extends URLClassLoader {
     public static final int BUFFER_SIZE = 1 << 12;
@@ -87,7 +88,7 @@ public class LaunchClassLoader extends URLClassLoader {
                 renameTransformer = (IClassNameTransformer) transformer;
             }
         } catch (Exception e) {
-            LogWrapper.log(Level.SEVERE, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
+            LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
         }
     }
 
@@ -181,7 +182,7 @@ public class LaunchClassLoader extends URLClassLoader {
         } catch (Throwable e) {
             invalidClasses.add(name);
             if (DEBUG) {
-                LogWrapper.log(Level.FINEST, e, "Exception encountered attempting classloading of %s", name);
+                LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of %s", name);
             }
             throw new ClassNotFoundException(name, e);
         }
@@ -210,7 +211,7 @@ public class LaunchClassLoader extends URLClassLoader {
             output.write(data);
             output.close();
         } catch (IOException ex) {
-            LogWrapper.log(Level.WARNING, ex, "Could not save transformed class \"%s\"", transformedName);
+            LogWrapper.log(Level.WARN, ex, "Could not save transformed class \"%s\"", transformedName);
         }
     }
 
@@ -308,7 +309,7 @@ public class LaunchClassLoader extends URLClassLoader {
             System.arraycopy(buffer, 0, result, 0, totalLength);
             return result;
         } catch (Throwable t) {
-            LogWrapper.log(Level.WARNING, t, "Problem loading class");
+            LogWrapper.log(Level.WARN, t, "Problem loading class");
             return new byte[0];
         }
     }
