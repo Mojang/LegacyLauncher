@@ -4,19 +4,19 @@ apply plugin: 'eclipse'
 
 repositories {
     maven {
-        url "http://s3.amazonaws.com/Minecraft.Download/libraries"
+        url "https://libraries.minecraft.net/"
     }
     mavenCentral()
 }
 
 group = 'net.minecraft'
 archivesBaseName = 'launchwrapper'
-version = '1.8'
+version = '1.9'
 
 dependencies {
     compile 'net.sf.jopt-simple:jopt-simple:4.5'
     compile 'org.ow2.asm:asm-debug-all:4.1'
-    compile 'org.lwjgl.lwjgl:lwjgl:2.8.5'
+    compile 'org.lwjgl.lwjgl:lwjgl:2.9.0'
     compile 'org.apache.logging.log4j:log4j-core:2.0-beta9'
     compile 'org.apache.logging.log4j:log4j-api:2.0-beta9'
 }
@@ -48,7 +48,7 @@ uploadArchives {
 
     doLast {
         // Purge all annoying files that arent needed
-        repoDir.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.(xml|sha1|md5)$/) {
+        repoDir.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.(xml(?:\.sha1)?|md5)$/) {
             it.delete()
         }
     }
