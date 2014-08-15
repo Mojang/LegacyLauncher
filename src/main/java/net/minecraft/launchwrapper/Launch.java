@@ -34,6 +34,7 @@ public class Launch {
         final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
         classLoader = new LaunchClassLoader(ucl.getURLs());
         blackboard = new HashMap<String,Object>();
+        Thread.currentThread().setContextClassLoader(classLoader);
     }
 
     private void launch(String[] args) {

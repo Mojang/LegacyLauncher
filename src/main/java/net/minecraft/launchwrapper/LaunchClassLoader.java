@@ -8,6 +8,7 @@ import java.net.URLConnection;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes;
 import java.util.jar.Attributes.Name;
 import java.util.jar.JarEntry;
@@ -15,6 +16,8 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Logger;
 
 public class LaunchClassLoader extends URLClassLoader {
     public static final int BUFFER_SIZE = 1 << 12;
@@ -22,14 +25,14 @@ public class LaunchClassLoader extends URLClassLoader {
     private ClassLoader parent = getClass().getClassLoader();
 
     private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
-    private Map<String, Class<?>> cachedClasses = new HashMap<String, Class<?>>(1000);
+    private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<String, Class<?>>();
     private Set<String> invalidClasses = new HashSet<String>(1000);
 
     private Set<String> classLoaderExceptions = new HashSet<String>();
     private Set<String> transformerExceptions = new HashSet<String>();
-    private Map<Package, Manifest> packageManifests = new HashMap<Package, Manifest>();
-    private Map<String,byte[]> resourceCache = new HashMap<String,byte[]>(1000);
-    private Set<String> negativeResourceCache = new HashSet<String>();
+    private Map<Package, Manifest> packageManifests = new ConcurrentHashMap<Package, Manifest>();
+    private Map<String,byte[]> resourceCache = new ConcurrentHashMap<String,byte[]>(1000);
+    private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private IClassNameTransformer renameTransformer;
 
@@ -47,7 +50,6 @@ public class LaunchClassLoader extends URLClassLoader {
     public LaunchClassLoader(URL[] sources) {
         super(sources, null);
         this.sources = new ArrayList<URL>(Arrays.asList(sources));
-        Thread.currentThread().setContextClassLoader(this);
 
         // classloader exclusions
         addClassLoaderExclusion("java.");
@@ -184,6 +186,7 @@ public class LaunchClassLoader extends URLClassLoader {
             invalidClasses.add(name);
             if (DEBUG) {
                 LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of %s", name);
+                LogManager.getLogger("LaunchWrapper").log(Level.ERROR, "Exception encountered attempting classloading of %s", e);
             }
             throw new ClassNotFoundException(name, e);
         }
