@@ -11,7 +11,7 @@ repositories {
 
 group = 'net.minecraft'
 archivesBaseName = 'launchwrapper'
-version = '1.9'
+version = '1.10'
 
 dependencies {
     compile 'net.sf.jopt-simple:jopt-simple:4.5'
