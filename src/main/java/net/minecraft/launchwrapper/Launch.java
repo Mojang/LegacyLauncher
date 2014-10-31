@@ -80,13 +80,13 @@ public class Launch {
             // It is here to allow tweakers to "push" new tweak classes onto the 'stack' of
             // tweakers to evaluate allowing for cascaded discovery and injection of tweakers
             do {
-                for (final Iterator<String> it = tweakClassNames.iterator(); it.hasNext(); ) {
-                    final String tweakName = it.next();
+            	while(!tweakClassNames.isEmpty()){
+                    final String tweakName = tweakClassNames.get(0);
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
                         LogWrapper.log(Level.WARN, "Tweak class name %s has already been visited -- skipping", tweakName);
                         // remove the tweaker from the stack otherwise it will create an infinite loop
-                        it.remove();
+                        tweakClassNames.remove(tweakName);
                         continue;
                     } else {
                         allTweakerNames.add(tweakName);
@@ -99,7 +99,7 @@ public class Launch {
                     tweakers.add(tweaker);
 
                     // Remove the tweaker from the list of tweaker names we've processed this pass
-                    it.remove();
+                    tweakClassNames.remove(tweakName);
                     // If we haven't visited a tweaker yet, the first will become the 'primary' tweaker
                     if (primaryTweaker == null) {
                         LogWrapper.log(Level.INFO, "Using primary tweak class name %s", tweakName);
@@ -108,14 +108,14 @@ public class Launch {
                 }
 
                 // Now, iterate all the tweakers we just instantiated
-                for (final Iterator<ITweaker> it = tweakers.iterator(); it.hasNext(); ) {
-                    final ITweaker tweaker = it.next();
+            	while(!tweakers.isEmpty()) {
+                    final ITweaker tweaker = tweakers.get(0);
                     LogWrapper.log(Level.INFO, "Calling tweak class %s", tweaker.getClass().getName());
                     tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
                     tweaker.injectIntoClassLoader(classLoader);
                     allTweakers.add(tweaker);
                     // again, remove from the list once we've processed it, so we don't get duplicates
-                    it.remove();
+                    tweakers.remove(tweaker);
                 }
                 // continue around the loop until there's no tweak classes
             } while (!tweakClassNames.isEmpty());
