@@ -11,7 +11,7 @@ repositories {
 
 group = 'net.minecraft'
 archivesBaseName = 'launchwrapper'
-version = '1.11'
+version = '1.12'
 sourceCompatibility = 1.6
 
 dependencies {
