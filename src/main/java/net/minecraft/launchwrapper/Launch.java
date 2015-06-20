@@ -135,6 +135,7 @@ public class Launch {
             mainMethod.invoke(null, (Object) argumentList.toArray(new String[argumentList.size()]));
         } catch (Exception e) {
             LogWrapper.log(Level.ERROR, e, "Unable to launch");
+            System.exit(1);
         }
     }
 }
