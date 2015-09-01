@@ -41,7 +41,7 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
             return bytes;
         }
 
-        System.out.println("Probably the minecraft class (it has run && is applet!): " + name);
+        System.out.println("Probably the Minecraft class (it has run && is applet!): " + name);
 
         final ListIterator<AbstractInsnNode> iterator = runMethod.instructions.iterator();
         int firstSwitchJump = -1;
@@ -82,7 +82,7 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
 
     public static File inject() {
         // Speed up imageloading
-        System.out.println("Turning of ImageIO disk-caching");
+        System.out.println("Turning off ImageIO disk-caching");
         ImageIO.setUseCache(false);
 
         VanillaTweakInjector.loadIconsOnFrames();
