@@ -6,6 +6,8 @@ import joptsimple.OptionSpec;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,10 +33,32 @@ public class Launch {
     public static LaunchClassLoader classLoader;
 
     private Launch() {
-        final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
-        classLoader = new LaunchClassLoader(ucl.getURLs());
+        if (getClass().getClassLoader() instanceof URLClassLoader) {
+            final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
+            classLoader = new LaunchClassLoader(ucl.getURLs());
+        } else {
+            classLoader = new LaunchClassLoader(getURLs());
+        }
         blackboard = new HashMap<String,Object>();
         Thread.currentThread().setContextClassLoader(classLoader);
+    }
+
+    private URL[] getURLs() {
+        String cp = System.getProperty("java.class.path");
+        String[] elements = cp.split(File.pathSeparator);
+        URL[] urls = new URL[elements.length];
+        if (elements.length == 0) {
+            elements = new String[] { "" };
+        }
+        for (int i = 0; i < elements.length; i++) {
+            try {
+                URL url = new File(elements[i]).toURI().toURL();
+                urls[i] = url;
+            } catch (MalformedURLException ignore) {
+                // malformed file string or class path element does not exist
+            }
+        }
+        return urls;
     }
 
     private void launch(String[] args) {
