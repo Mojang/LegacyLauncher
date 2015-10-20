@@ -46,10 +46,10 @@ public class Launch {
     private URL[] getURLs() {
         String cp = System.getProperty("java.class.path");
         String[] elements = cp.split(File.pathSeparator);
-        URL[] urls = new URL[elements.length];
         if (elements.length == 0) {
             elements = new String[] { "" };
         }
+        URL[] urls = new URL[elements.length];
         for (int i = 0; i < elements.length; i++) {
             try {
                 URL url = new File(elements[i]).toURI().toURL();
