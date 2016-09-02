@@ -6,6 +6,7 @@ import org.lwjgl.opengl.Display;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
@@ -59,16 +60,17 @@ public class VanillaTweakInjector implements IClassTransformer {
         }
 
         // Prepare our injection code
-        final MethodNode injectedMethod = new MethodNode();
-        final Label label = new Label();
-        injectedMethod.visitLabel(label);
-        injectedMethod.visitLineNumber(9001, label); // Linenumber which shows up in the stacktrace
+        final InsnList injectedCode = new InsnList();
+        final LabelNode label = new LabelNode();
+        injectedCode.add(label);
+        // Linenumber which shows up in the stacktrace
+        injectedCode.add(new LineNumberNode(9001, label));
         // Call the method below
-        injectedMethod.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;");
+        injectedCode.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;", false));
         // Store the result in the workDir variable.
-        injectedMethod.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;");
+        injectedCode.add(new FieldInsnNode(Opcodes.PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;"));
 
-        mainMethod.instructions.insert(injectedMethod.instructions);
+        mainMethod.instructions.insert(injectedCode);
 
         final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
         classNode.accept(writer);
