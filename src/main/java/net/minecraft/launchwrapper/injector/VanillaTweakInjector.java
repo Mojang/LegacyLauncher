@@ -2,6 +2,7 @@ package net.minecraft.launchwrapper.injector;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
+
 import org.lwjgl.opengl.Display;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -10,6 +11,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import javax.imageio.ImageIO;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -38,7 +40,8 @@ public class VanillaTweakInjector implements IClassTransformer {
         classReader.accept(classNode, ClassReader.EXPAND_FRAMES);
 
         MethodNode mainMethod = null;
-        for (final MethodNode methodNode : classNode.methods) {
+        List<MethodNode> methods = classNode.methods;
+        for (final MethodNode methodNode : methods) {
             if ("main".equals(methodNode.name)) {
                 mainMethod = methodNode;
                 break;
@@ -50,7 +53,8 @@ public class VanillaTweakInjector implements IClassTransformer {
         }
 
         FieldNode workDirNode = null;
-        for (final FieldNode fieldNode : classNode.fields) {
+        List<FieldNode> fields = classNode.fields;
+        for (final FieldNode fieldNode : fields) {
             final String fileTypeDescriptor = Type.getDescriptor(File.class);
             if (fileTypeDescriptor.equals(fieldNode.desc) && (fieldNode.access & ACC_STATIC) == ACC_STATIC) {
                 workDirNode = fieldNode;

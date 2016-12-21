@@ -2,11 +2,14 @@ package net.minecraft.launchwrapper.injector;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
+
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
 import javax.imageio.ImageIO;
+
 import java.io.File;
+import java.util.List;
 import java.util.ListIterator;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -30,7 +33,8 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
         }
 
         MethodNode runMethod = null;
-        for (final MethodNode methodNode : classNode.methods) {
+        List<MethodNode> methods = classNode.methods;
+        for (final MethodNode methodNode : methods) {
             if ("run".equals(methodNode.name)) {
                 runMethod = methodNode;
                 break;
@@ -52,7 +56,7 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
             if (instruction.getOpcode() == TABLESWITCH) {
                 TableSwitchInsnNode tableSwitchInsnNode = (TableSwitchInsnNode) instruction;
 
-                firstSwitchJump = runMethod.instructions.indexOf(tableSwitchInsnNode.labels.get(0));
+                firstSwitchJump = runMethod.instructions.indexOf((AbstractInsnNode) tableSwitchInsnNode.labels.get(0));
             } else if (firstSwitchJump >= 0 && runMethod.instructions.indexOf(instruction) == firstSwitchJump) {
                 int endOfSwitch = -1;
                 while (iterator.hasNext()) {
