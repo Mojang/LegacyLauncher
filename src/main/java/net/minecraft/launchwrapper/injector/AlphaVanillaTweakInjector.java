@@ -1,7 +1,6 @@
 package net.minecraft.launchwrapper.injector;
 
-import net.minecraft.launchwrapper.IClassTransformer;
-import net.minecraft.launchwrapper.Launch;
+import net.minecraft.launchwrapper.*;
 
 import javax.swing.*;
 import java.applet.Applet;
@@ -15,11 +14,20 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.List;
 
 public class AlphaVanillaTweakInjector implements IClassTransformer {
+    // The main classloader
+    private static LaunchClassLoader launchClassLoader;
+
     public AlphaVanillaTweakInjector() {
+        List<ITweaker> tweaks = (List<ITweaker>) Launch.blackboard.get("Tweaks");
+        for (ITweaker tweaker : tweaks) {
+            if (tweaker instanceof AlphaVanillaTweaker) {
+                launchClassLoader = ((AlphaVanillaTweaker) tweaker).launchClassLoader;
+            }
+        }
     }
 
     @Override
@@ -160,7 +168,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
     }
 
     private static Class<?> getaClass(String name) throws ClassNotFoundException {
-        return Launch.classLoader.findClass(name);
+        return launchClassLoader.findClass(name);
     }
 
     private static Field getWorkingDirField(String name) throws ClassNotFoundException {

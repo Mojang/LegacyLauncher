@@ -5,6 +5,7 @@ import java.util.List;
 
 public class AlphaVanillaTweaker implements ITweaker {
     private List<String> args;
+    public LaunchClassLoader launchClassLoader;
 
     @Override
     public void acceptOptions(List<String> args, File gameDir, File assetsDir, String profile) {
@@ -13,7 +14,10 @@ public class AlphaVanillaTweaker implements ITweaker {
 
     @Override
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
+        launchClassLoader = classLoader;
         classLoader.registerTransformer("net.minecraft.launchwrapper.injector.AlphaVanillaTweakInjector");
+        // don't leak the classloader
+        launchClassLoader = null;
     }
 
     @Override

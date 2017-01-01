@@ -28,7 +28,8 @@ public class Launch {
         new Launch().launch(args);
     }
 
-    public static LaunchClassLoader classLoader;
+    // The main classloader
+    private final LaunchClassLoader classLoader;
 
     private Launch() {
         final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
