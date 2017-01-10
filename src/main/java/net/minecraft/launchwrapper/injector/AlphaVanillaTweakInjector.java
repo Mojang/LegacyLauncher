@@ -14,8 +14,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AlphaVanillaTweakInjector implements IClassTransformer {
     // The main classloader
@@ -26,6 +27,7 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
         for (ITweaker tweaker : tweaks) {
             if (tweaker instanceof AlphaVanillaTweaker) {
                 launchClassLoader = ((AlphaVanillaTweaker) tweaker).launchClassLoader;
+                break;
             }
         }
     }

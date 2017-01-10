@@ -31,7 +31,7 @@ public class LaunchClassLoader extends URLClassLoader {
     private Map<String,byte[]> resourceCache = new ConcurrentHashMap<String,byte[]>(1000);
     private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
-    private final SharedLaunchData sharedLaunchData;
+    private final LaunchData launchData;
 
     private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<byte[]>();
 
@@ -46,14 +46,14 @@ public class LaunchClassLoader extends URLClassLoader {
         this(sources, null);
     }
 
-    public LaunchClassLoader(URL[] sources, LaunchClassLoader share) {
+    public LaunchClassLoader(URL[] sources, LaunchClassLoader from) {
         super(sources, null);
         this.sources = new ArrayList<URL>(Arrays.asList(sources));
 
-        if (share != null) {
-            sharedLaunchData = share.sharedLaunchData;
+        if (from != null) {
+            launchData = from.launchData;
         } else {
-            sharedLaunchData = new SharedLaunchData();
+            launchData = new LaunchData();
         }
 
         // classloader exclusions
@@ -91,9 +91,9 @@ public class LaunchClassLoader extends URLClassLoader {
     public void registerTransformer(String transformerClassName) {
         try {
             IClassTransformer transformer = (IClassTransformer) loadClass(transformerClassName).newInstance();
-            sharedLaunchData.transformers.add(transformer);
-            if (transformer instanceof IClassNameTransformer && sharedLaunchData.renameTransformer == null) {
-                sharedLaunchData.renameTransformer = (IClassNameTransformer) transformer;
+            launchData.transformers.add(transformer);
+            if (transformer instanceof IClassNameTransformer && launchData.renameTransformer == null) {
+                launchData.renameTransformer = (IClassNameTransformer) transformer;
             }
         } catch (Exception e) {
             LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
@@ -223,16 +223,16 @@ public class LaunchClassLoader extends URLClassLoader {
     }
 
     private String untransformName(final String name) {
-        if (sharedLaunchData.renameTransformer != null) {
-            return sharedLaunchData.renameTransformer.unmapClassName(name);
+        if (launchData.renameTransformer != null) {
+            return launchData.renameTransformer.unmapClassName(name);
         }
 
         return name;
     }
 
     private String transformName(final String name) {
-        if (sharedLaunchData.renameTransformer != null) {
-            return sharedLaunchData.renameTransformer.remapClassName(name);
+        if (launchData.renameTransformer != null) {
+            return launchData.renameTransformer.remapClassName(name);
         }
 
         return name;
@@ -270,7 +270,7 @@ public class LaunchClassLoader extends URLClassLoader {
     private byte[] runTransformers(final String name, final String transformedName, byte[] basicClass) {
         if (DEBUG_FINER) {
             LogWrapper.finest("Beginning transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
-            for (final IClassTransformer transformer : sharedLaunchData.transformers) {
+            for (final IClassTransformer transformer : launchData.transformers) {
                 final String transName = transformer.getClass().getName();
                 LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
                 basicClass = transformer.transform(name, transformedName, basicClass);
@@ -278,7 +278,7 @@ public class LaunchClassLoader extends URLClassLoader {
             }
             LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
         } else {
-            for (final IClassTransformer transformer : sharedLaunchData.transformers) {
+            for (final IClassTransformer transformer : launchData.transformers) {
                 basicClass = transformer.transform(name, transformedName, basicClass);
             }
         }
@@ -331,7 +331,7 @@ public class LaunchClassLoader extends URLClassLoader {
     }
 
     public List<IClassTransformer> getTransformers() {
-        return Collections.unmodifiableList(sharedLaunchData.transformers);
+        return Collections.unmodifiableList(launchData.transformers);
     }
 
     public void addClassLoaderExclusion(String toExclude) {
@@ -397,7 +397,7 @@ public class LaunchClassLoader extends URLClassLoader {
     /**
      * @author soniex2
      */
-    private static final class SharedLaunchData {
+    private static final class LaunchData {
         private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
         private IClassNameTransformer renameTransformer;
     }
