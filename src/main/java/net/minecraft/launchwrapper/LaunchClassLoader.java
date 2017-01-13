@@ -180,14 +180,14 @@ public class LaunchClassLoader extends URLClassLoader {
             invalidClasses.add(name);
             if (DEBUG) {
                 LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of %s", name);
-                LogManager.getLogger("LaunchWrapper").log(Level.ERROR, "Exception encountered attempting classloading of %s", e);
+                LogManager.getLogger("LaunchWrapper").log(Level.ERROR, String.format("Exception encountered attempting classloading of %s", name), e);
             }
             throw new ClassNotFoundException(name, e);
         }
     }
 
     private void saveTransformedClass(final byte[] data, final String transformedName) {
-        if (tempFolder == null) {
+        if (tempFolder == null || data == null) {
             return;
         }
 
