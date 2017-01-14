@@ -168,17 +168,14 @@ public class LaunchClassLoader extends URLClassLoader {
             }
 
             final byte[] transformedClass = runTransformers(untransformedName, transformedName, getClassBytes(untransformedName));
-
-            if (transformedClass != null) {
-                if(DEBUG_SAVE) {
-                    saveTransformedClass(transformedClass, transformedName);
-                }
-
-                final CodeSource codeSource = urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
-                final Class<?> clazz = defineClass(transformedName, transformedClass, 0, transformedClass.length, codeSource);
-                cachedClasses.put(transformedName, clazz);
-                return clazz;
+            if (DEBUG_SAVE) {
+                saveTransformedClass(transformedClass, transformedName);
             }
+
+            final CodeSource codeSource = urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
+            final Class<?> clazz = defineClass(transformedName, transformedClass, 0, transformedClass.length, codeSource);
+            cachedClasses.put(transformedName, clazz);
+            return clazz;
         } catch (Throwable e) {
             invalidClasses.add(name);
             if (DEBUG) {
@@ -187,8 +184,6 @@ public class LaunchClassLoader extends URLClassLoader {
             }
             throw new ClassNotFoundException(name, e);
         }
-
-        throw new ClassNotFoundException(name);
     }
 
     private void saveTransformedClass(final byte[] data, final String transformedName) {
