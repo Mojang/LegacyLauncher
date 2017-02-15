@@ -45,6 +45,8 @@ public class Launch {
         final OptionSpec<File> gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
         final OptionSpec<File> assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
         final OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg().defaultsTo(DEFAULT_TWEAK);
+        final OptionSpec<boolean> showMessagesOption = parser.accepts("showMessages", "Show log messages").withRequiredArg().defaultsTo(true);
+        final OptionSpec<String> launchMessageOption = parser.accepts("launchMessage", "Configure launch message").withRequiredArg().defaultsTo("Launching wrapped Minecraft {%s}");
         final OptionSpec<String> nonOption = parser.nonOptions();
 
         final OptionSet options = parser.parse(args);
@@ -52,6 +54,8 @@ public class Launch {
         assetsDir = options.valueOf(assetsDirOption);
         final String profileName = options.valueOf(profileOption);
         final List<String> tweakClassNames = new ArrayList<String>(options.valuesOf(tweakClassOption));
+        final boolean loggingEnabled = options.valueOf(showMessagesOption);
+        final String launchMessage = options.valueOf(launchMessageOption);
 
         final List<String> argumentList = new ArrayList<String>();
         // This list of names will be interacted with through tweakers. They can append to this list
@@ -84,14 +88,14 @@ public class Launch {
                     final String tweakName = it.next();
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
-                        LogWrapper.log(Level.WARN, "Tweak class name %s has already been visited -- skipping", tweakName);
+                        if (loggingEnabled) LogWrapper.log(Level.WARN, "Tweak class name %s has already been visited -- skipping", tweakName);
                         // remove the tweaker from the stack otherwise it will create an infinite loop
                         it.remove();
                         continue;
                     } else {
                         allTweakerNames.add(tweakName);
                     }
-                    LogWrapper.log(Level.INFO, "Loading tweak class name %s", tweakName);
+                    if (loggingEnabled) LogWrapper.log(Level.INFO, "Loading tweak class name %s", tweakName);
 
                     // Ensure we allow the tweak class to load with the parent classloader
                     classLoader.addClassLoaderExclusion(tweakName.substring(0,tweakName.lastIndexOf('.')));
@@ -102,7 +106,7 @@ public class Launch {
                     it.remove();
                     // If we haven't visited a tweaker yet, the first will become the 'primary' tweaker
                     if (primaryTweaker == null) {
-                        LogWrapper.log(Level.INFO, "Using primary tweak class name %s", tweakName);
+                        if (loggingEnabled) LogWrapper.log(Level.INFO, "Using primary tweak class name %s", tweakName);
                         primaryTweaker = tweaker;
                     }
                 }
@@ -110,7 +114,7 @@ public class Launch {
                 // Now, iterate all the tweakers we just instantiated
                 for (final Iterator<ITweaker> it = tweakers.iterator(); it.hasNext(); ) {
                     final ITweaker tweaker = it.next();
-                    LogWrapper.log(Level.INFO, "Calling tweak class %s", tweaker.getClass().getName());
+                    if (loggingEnabled) LogWrapper.log(Level.INFO, "Calling tweak class %s", tweaker.getClass().getName());
                     tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
                     tweaker.injectIntoClassLoader(classLoader);
                     allTweakers.add(tweaker);
@@ -131,7 +135,8 @@ public class Launch {
             final Class<?> clazz = Class.forName(launchTarget, false, classLoader);
             final Method mainMethod = clazz.getMethod("main", new Class[]{String[].class});
 
-            LogWrapper.info("Launching wrapped minecraft {%s}", launchTarget);
+            if (loggingEnabled) LogWrapper.info(launchMessage, launchTarget);
+
             mainMethod.invoke(null, (Object) argumentList.toArray(new String[argumentList.size()]));
         } catch (Exception e) {
             LogWrapper.log(Level.ERROR, e, "Unable to launch");
