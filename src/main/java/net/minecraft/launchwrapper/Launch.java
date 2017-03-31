@@ -37,7 +37,7 @@ public class Launch {
         Thread.currentThread().setContextClassLoader(classLoader);
     }
 
-    private void launch(String[] args) {
+    public void launch(String[] args) {
         final OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
 
