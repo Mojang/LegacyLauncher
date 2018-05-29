@@ -35,6 +35,11 @@ public class Launch {
         classLoader = new LaunchClassLoader(ucl.getURLs());
         blackboard = new HashMap<String,Object>();
         Thread.currentThread().setContextClassLoader(classLoader);
+
+        Map<IClassTransformer, Long> transformerTimings = classLoader.getTransformerTimings();
+        if (transformerTimings != null) {
+            blackboard.put("TransformerTimings", transformerTimings);
+        }
     }
 
     private void launch(String[] args) {

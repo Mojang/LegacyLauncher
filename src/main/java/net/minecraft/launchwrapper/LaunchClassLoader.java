@@ -31,6 +31,7 @@ public class LaunchClassLoader extends URLClassLoader {
     private Set<String> transformerExceptions = new HashSet<String>();
     private Map<String,byte[]> resourceCache = new ConcurrentHashMap<String,byte[]>(1000);
     private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private Map<IClassTransformer, Long> transformerTimings;
 
     private IClassNameTransformer renameTransformer;
 
@@ -41,6 +42,7 @@ public class LaunchClassLoader extends URLClassLoader {
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("legacy.debugClassLoading", "false"));
     private static final boolean DEBUG_FINER = DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingFiner", "false"));
     private static final boolean DEBUG_SAVE = DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingSave", "false"));
+    private static final boolean TIMINGS_ENABLED = Boolean.parseBoolean(System.getProperty("legacy.timings", "true"));
     private static File tempFolder = null;
 
     public LaunchClassLoader(URL[] sources) {
@@ -77,6 +79,10 @@ public class LaunchClassLoader extends URLClassLoader {
                 tempFolder.mkdirs();
             }
         }
+
+        if (TIMINGS_ENABLED) {
+            transformerTimings = new HashMap<IClassTransformer, Long>();
+        }
     }
 
     public void registerTransformer(String transformerClassName) {
@@ -85,6 +91,10 @@ public class LaunchClassLoader extends URLClassLoader {
             transformers.add(transformer);
             if (transformer instanceof IClassNameTransformer && renameTransformer == null) {
                 renameTransformer = (IClassNameTransformer) transformer;
+            }
+
+            if (TIMINGS_ENABLED) {
+                transformerTimings.put(transformer, 0L);
             }
         } catch (Exception e) {
             LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
@@ -215,7 +225,15 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private String untransformName(final String name) {
         if (renameTransformer != null) {
-            return renameTransformer.unmapClassName(name);
+            if (TIMINGS_ENABLED) {
+                long startTime = System.nanoTime();
+                String result = renameTransformer.unmapClassName(name);
+                //noinspection SuspiciousMethodCalls (all IClassNameTransformers are IClassTransformers)
+                transformerTimings.put((IClassTransformer) renameTransformer, transformerTimings.get(renameTransformer) + System.nanoTime() - startTime);
+                return result;
+            } else {
+                return renameTransformer.unmapClassName(name);
+            }
         }
 
         return name;
@@ -223,7 +241,15 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private String transformName(final String name) {
         if (renameTransformer != null) {
-            return renameTransformer.remapClassName(name);
+            if (TIMINGS_ENABLED) {
+                long startTime = System.nanoTime();
+                String result = renameTransformer.remapClassName(name);
+                //noinspection SuspiciousMethodCalls (all IClassNameTransformers are IClassTransformers)
+                transformerTimings.put((IClassTransformer) renameTransformer, transformerTimings.get(renameTransformer) + System.nanoTime() - startTime);
+                return result;
+            } else {
+                return renameTransformer.remapClassName(name);
+            }
         }
 
         return name;
@@ -264,10 +290,19 @@ public class LaunchClassLoader extends URLClassLoader {
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
                 LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                long startTime = System.nanoTime();
                 basicClass = transformer.transform(name, transformedName, basicClass);
-                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                long timeTaken = System.nanoTime() - startTime;
+                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d (took %d ns)", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length), timeTaken);
+                transformerTimings.put(transformer, transformerTimings.get(transformer) + timeTaken);
             }
             LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+        } else if (TIMINGS_ENABLED) {
+            for (final IClassTransformer transformer : transformers) {
+                long startTime = System.nanoTime();
+                basicClass = transformer.transform(name, transformedName, basicClass);
+                transformerTimings.put(transformer, transformerTimings.get(transformer) + System.nanoTime() - startTime);
+            }
         } else {
             for (final IClassTransformer transformer : transformers) {
                 basicClass = transformer.transform(name, transformedName, basicClass);
@@ -323,6 +358,10 @@ public class LaunchClassLoader extends URLClassLoader {
 
     public List<IClassTransformer> getTransformers() {
         return Collections.unmodifiableList(transformers);
+    }
+
+    public Map<IClassTransformer, Long> getTransformerTimings() {
+        return TIMINGS_ENABLED ? Collections.unmodifiableMap(transformerTimings) : null;
     }
 
     public void addClassLoaderExclusion(String toExclude) {
