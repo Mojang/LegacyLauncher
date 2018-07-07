@@ -3,26 +3,19 @@ package net.minecraft.launchwrapper;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.logging.log4j.Level;
+import java.util.*;
 
 public class Launch {
-    private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
+    private static final Logger LOGGER = LogManager.getLogger("LaunchWrapper");
     public static File minecraftHome;
     public static File assetsDir;
-    public static Map<String,Object> blackboard;
+    public static Map<String, Object> blackboard;
 
     public static void main(String[] args) {
         new Launch().launch(args);
@@ -33,7 +26,7 @@ public class Launch {
     private Launch() {
         final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
         classLoader = new LaunchClassLoader(ucl.getURLs());
-        blackboard = new HashMap<String,Object>();
+        blackboard = new HashMap<>();
         Thread.currentThread().setContextClassLoader(classLoader);
 
         Map<IClassTransformer, Long> transformerTimings = classLoader.getTransformerTimings();
@@ -49,16 +42,16 @@ public class Launch {
         final OptionSpec<String> profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
         final OptionSpec<File> gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
         final OptionSpec<File> assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
-        final OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg().defaultsTo(DEFAULT_TWEAK);
+        final OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg();
         final OptionSpec<String> nonOption = parser.nonOptions();
 
         final OptionSet options = parser.parse(args);
         minecraftHome = options.valueOf(gameDirOption);
         assetsDir = options.valueOf(assetsDirOption);
         final String profileName = options.valueOf(profileOption);
-        final List<String> tweakClassNames = new ArrayList<String>(options.valuesOf(tweakClassOption));
+        final List<String> tweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
 
-        final List<String> argumentList = new ArrayList<String>();
+        final List<String> argumentList = new ArrayList<>();
         // This list of names will be interacted with through tweakers. They can append to this list
         // any 'discovered' tweakers from their preferred mod loading mechanism
         // By making this object discoverable and accessible it's possible to perform
@@ -70,11 +63,11 @@ public class Launch {
         blackboard.put("ArgumentList", argumentList);
 
         // This is to prevent duplicates - in case a tweaker decides to add itself or something
-        final Set<String> allTweakerNames = new HashSet<String>();
+        final Set<String> allTweakerNames = new HashSet<>();
         // The 'definitive' list of tweakers
-        final List<ITweaker> allTweakers = new ArrayList<ITweaker>();
+        final List<ITweaker> allTweakers = new ArrayList<>();
         try {
-            final List<ITweaker> tweakers = new ArrayList<ITweaker>(tweakClassNames.size() + 1);
+            final List<ITweaker> tweakers = new ArrayList<>(tweakClassNames.size() + 1);
             // The list of tweak instances - may be useful for interoperability
             blackboard.put("Tweaks", tweakers);
             // The primary tweaker (the first one specified on the command line) will actually
@@ -89,17 +82,17 @@ public class Launch {
                     final String tweakName = it.next();
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
-                        LogWrapper.log(Level.WARN, "Tweak class name %s has already been visited -- skipping", tweakName);
+                        LOGGER.warn("Tweak class name %s has already been visited -- skipping", tweakName);
                         // remove the tweaker from the stack otherwise it will create an infinite loop
                         it.remove();
                         continue;
                     } else {
                         allTweakerNames.add(tweakName);
                     }
-                    LogWrapper.log(Level.INFO, "Loading tweak class name %s", tweakName);
+                    LOGGER.info("Loading tweak class name %s", tweakName);
 
                     // Ensure we allow the tweak class to load with the parent classloader
-                    classLoader.addClassLoaderExclusion(tweakName.substring(0,tweakName.lastIndexOf('.')));
+                    classLoader.addClassLoaderExclusion(tweakName.substring(0, tweakName.lastIndexOf('.')));
                     final ITweaker tweaker = (ITweaker) Class.forName(tweakName, true, classLoader).newInstance();
                     tweakers.add(tweaker);
 
@@ -107,7 +100,7 @@ public class Launch {
                     it.remove();
                     // If we haven't visited a tweaker yet, the first will become the 'primary' tweaker
                     if (primaryTweaker == null) {
-                        LogWrapper.log(Level.INFO, "Using primary tweak class name %s", tweakName);
+                        LOGGER.info("Using primary tweak class name %s", tweakName);
                         primaryTweaker = tweaker;
                     }
                 }
@@ -115,7 +108,7 @@ public class Launch {
                 // Now, iterate all the tweakers we just instantiated
                 for (final Iterator<ITweaker> it = tweakers.iterator(); it.hasNext(); ) {
                     final ITweaker tweaker = it.next();
-                    LogWrapper.log(Level.INFO, "Calling tweak class %s", tweaker.getClass().getName());
+                    LOGGER.info("Calling tweak class %s", tweaker.getClass().getName());
                     tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
                     tweaker.injectIntoClassLoader(classLoader);
                     allTweakers.add(tweaker);
@@ -134,12 +127,12 @@ public class Launch {
             // Finally we turn to the primary tweaker, and let it tell us where to go to launch
             final String launchTarget = primaryTweaker.getLaunchTarget();
             final Class<?> clazz = Class.forName(launchTarget, false, classLoader);
-            final Method mainMethod = clazz.getMethod("main", new Class[]{String[].class});
+            final Method mainMethod = clazz.getMethod("main", String[].class);
 
-            LogWrapper.info("Launching wrapped minecraft {%s}", launchTarget);
-            mainMethod.invoke(null, (Object) argumentList.toArray(new String[argumentList.size()]));
+            LOGGER.info("Launching wrapped minecraft {%s}", launchTarget);
+            mainMethod.invoke(null, (Object) argumentList.toArray(new String[0]));
         } catch (Exception e) {
-            LogWrapper.log(Level.ERROR, e, "Unable to launch");
+            LOGGER.error("Unable to launch", e);
             System.exit(1);
         }
     }

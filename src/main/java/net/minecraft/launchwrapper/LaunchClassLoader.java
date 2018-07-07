@@ -1,7 +1,7 @@
 package net.minecraft.launchwrapper;
 
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.JarURLConnection;
@@ -19,23 +19,24 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 public class LaunchClassLoader extends URLClassLoader {
+    private static final Logger LOGGER = LogManager.getLogger("LaunchWrapper");
     public static final int BUFFER_SIZE = 1 << 12;
     private List<URL> sources;
     private ClassLoader parent = getClass().getClassLoader();
 
-    private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
-    private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<String, Class<?>>();
-    private Map<String, ClassNotFoundException> invalidClasses = new HashMap<String, ClassNotFoundException>(1000);
+    private List<IClassTransformer> transformers = new ArrayList<>(2);
+    private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<>();
+    private Map<String, ClassNotFoundException> invalidClasses = new HashMap<>(1000);
 
-    private Set<String> classLoaderExceptions = new HashSet<String>();
-    private Set<String> transformerExceptions = new HashSet<String>();
-    private Map<String,byte[]> resourceCache = new ConcurrentHashMap<String,byte[]>(1000);
-    private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private Set<String> classLoaderExceptions = new HashSet<>();
+    private Set<String> transformerExceptions = new HashSet<>();
+    private Map<String, byte[]> resourceCache = new ConcurrentHashMap<>(1000);
+    private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private Map<IClassTransformer, Long> transformerTimings;
 
     private IClassNameTransformer renameTransformer;
 
-    private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<byte[]>();
+    private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<>();
 
     private static final String[] RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
 
@@ -47,7 +48,7 @@ public class LaunchClassLoader extends URLClassLoader {
 
     public LaunchClassLoader(URL[] sources) {
         super(sources, null);
-        this.sources = new ArrayList<URL>(Arrays.asList(sources));
+        this.sources = new ArrayList<>(Arrays.asList(sources));
 
         // classloader exclusions
         addClassLoaderExclusion("java.");
@@ -72,16 +73,16 @@ public class LaunchClassLoader extends URLClassLoader {
             }
 
             if (tempFolder.exists()) {
-                LogWrapper.info("DEBUG_SAVE enabled, but 10 temp directories already exist, clean them and try again.");
+                LOGGER.info("DEBUG_SAVE enabled, but 10 temp directories already exist, clean them and try again.");
                 tempFolder = null;
             } else {
-                LogWrapper.info("DEBUG_SAVE Enabled, saving all classes to \"%s\"", tempFolder.getAbsolutePath().replace('\\', '/'));
+                LOGGER.info("DEBUG_SAVE Enabled, saving all classes to \"%s\"", tempFolder.getAbsolutePath().replace('\\', '/'));
                 tempFolder.mkdirs();
             }
         }
 
         if (TIMINGS_ENABLED) {
-            transformerTimings = new HashMap<IClassTransformer, Long>();
+            transformerTimings = new HashMap<>();
         }
     }
 
@@ -97,7 +98,7 @@ public class LaunchClassLoader extends URLClassLoader {
                 transformerTimings.put(transformer, 0L);
             }
         } catch (Exception e) {
-            LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
+            LOGGER.error("A critical problem occurred registering the ASM transformer class %s", transformerClassName, e);
         }
     }
 
@@ -159,21 +160,21 @@ public class LaunchClassLoader extends URLClassLoader {
                         getClassBytes(untransformedName);
                         signers = entry.getCodeSigners();
                         if (pkg == null) {
-                            pkg = definePackage(packageName, manifest, jarURLConnection.getJarFileURL());
+                            definePackage(packageName, manifest, jarURLConnection.getJarFileURL());
                         } else {
                             if (pkg.isSealed() && !pkg.isSealed(jarURLConnection.getJarFileURL())) {
-                                LogWrapper.severe("The jar file %s is trying to seal already secured path %s", jarFile.getName(), packageName);
+                                LOGGER.fatal("The jar file %s is trying to seal already secured path %s", jarFile.getName(), packageName);
                             } else if (isSealed(packageName, manifest)) {
-                                LogWrapper.severe("The jar file %s has a security seal for path %s, but that path is defined and not secure", jarFile.getName(), packageName);
+                                LOGGER.fatal("The jar file %s has a security seal for path %s, but that path is defined and not secure", jarFile.getName(), packageName);
                             }
                         }
                     }
                 } else {
                     Package pkg = getPackage(packageName);
                     if (pkg == null) {
-                        pkg = definePackage(packageName, null, null, null, null, null, null, null);
+                        definePackage(packageName, null, null, null, null, null, null, null);
                     } else if (pkg.isSealed()) {
-                        LogWrapper.severe("The URL %s is defining elements for sealed path %s", urlConnection.getURL(), packageName);
+                        LOGGER.error("The URL %s is defining elements for sealed path %s", urlConnection.getURL(), packageName);
                     }
                 }
             }
@@ -191,8 +192,7 @@ public class LaunchClassLoader extends URLClassLoader {
             ClassNotFoundException classNotFoundException = new ClassNotFoundException(name, e);
             invalidClasses.put(name, classNotFoundException);
             if (DEBUG) {
-                LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of %s", name);
-                LogManager.getLogger("LaunchWrapper").log(Level.ERROR, "Exception encountered attempting classloading of %s", e);
+                LOGGER.error("Exception encountered attempting classloading of %s", name, e);
             }
             throw classNotFoundException;
         }
@@ -215,13 +215,13 @@ public class LaunchClassLoader extends URLClassLoader {
         }
 
         try {
-            LogWrapper.fine("Saving transformed class \"%s\" to \"%s\"", transformedName, outFile.getAbsolutePath().replace('\\', '/'));
+            LOGGER.debug("Saving transformed class \"%s\" to \"%s\"", transformedName, outFile.getAbsolutePath().replace('\\', '/'));
 
             final OutputStream output = new FileOutputStream(outFile);
             output.write(data);
             output.close();
-        } catch (IOException ex) {
-            LogWrapper.log(Level.WARN, ex, "Could not save transformed class \"%s\"", transformedName);
+        } catch (IOException e) {
+            LOGGER.warn("Could not save transformed class \"%s\"", transformedName, e);
         }
     }
 
@@ -288,17 +288,17 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private byte[] runTransformers(final String name, final String transformedName, byte[] basicClass) {
         if (DEBUG_FINER) {
-            LogWrapper.finest("Beginning transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+            LOGGER.trace("Beginning transform of {%s (%s)} Start Length: %d", name, transformedName, basicClass == null ? 0 : basicClass.length);
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
-                LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                LOGGER.trace("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, basicClass == null ? 0 : basicClass.length);
                 long startTime = System.nanoTime();
                 basicClass = transformer.transform(name, transformedName, basicClass);
                 long timeTaken = System.nanoTime() - startTime;
-                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d (took %d ns)", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length), timeTaken);
+                LOGGER.trace("After  Transformer {%s (%s)} %s: %d (took %d ns)", name, transformedName, transName, basicClass == null ? 0 : basicClass.length, timeTaken);
                 transformerTimings.put(transformer, transformerTimings.get(transformer) + timeTaken);
             }
-            LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+            LOGGER.trace("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, basicClass == null ? 0 : basicClass.length);
         } else if (TIMINGS_ENABLED) {
             for (final IClassTransformer transformer : transformers) {
                 long startTime = System.nanoTime();
@@ -344,7 +344,7 @@ public class LaunchClassLoader extends URLClassLoader {
             System.arraycopy(buffer, 0, result, 0, totalLength);
             return result;
         } catch (Throwable t) {
-            LogWrapper.log(Level.WARN, t, "Problem loading class");
+            LOGGER.warn("Problem loading class", t);
             return new byte[0];
         }
     }
@@ -398,13 +398,13 @@ public class LaunchClassLoader extends URLClassLoader {
             final URL classResource = findResource(resourcePath);
 
             if (classResource == null) {
-                if (DEBUG) LogWrapper.finest("Failed to find class resource %s", resourcePath);
+                if (DEBUG) LOGGER.trace("Failed to find class resource %s", resourcePath);
                 negativeResourceCache.add(name);
                 return null;
             }
             classStream = classResource.openStream();
 
-            if (DEBUG) LogWrapper.finest("Loading class %s from resource %s", name, classResource.toString());
+            if (DEBUG) LOGGER.trace("Loading class %s from resource %s", name, classResource.toString());
             final byte[] data = readFully(classStream);
             resourceCache.put(name, data);
             return data;
