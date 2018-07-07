@@ -1,5 +1,8 @@
 package net.minecraft.launchwrapper;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+
 import java.io.*;
 import java.net.JarURLConnection;
 import java.net.URL;
@@ -15,9 +18,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-
 public class LaunchClassLoader extends URLClassLoader {
     public static final int BUFFER_SIZE = 1 << 12;
     private List<URL> sources;
@@ -25,7 +25,7 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
     private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<String, Class<?>>();
-    private Set<String> invalidClasses = new HashSet<String>(1000);
+    private Map<String, ClassNotFoundException> invalidClasses = new HashMap<String, ClassNotFoundException>(1000);
 
     private Set<String> classLoaderExceptions = new HashSet<String>();
     private Set<String> transformerExceptions = new HashSet<String>();
@@ -103,8 +103,9 @@ public class LaunchClassLoader extends URLClassLoader {
 
     @Override
     public Class<?> findClass(final String name) throws ClassNotFoundException {
-        if (invalidClasses.contains(name)) {
-            throw new ClassNotFoundException(name);
+        ClassNotFoundException previousException = invalidClasses.get(name);
+        if (previousException != null) {
+            throw new ClassPreviouslyNotFoundException(name, previousException);
         }
 
         for (final String exception : classLoaderExceptions) {
@@ -124,7 +125,7 @@ public class LaunchClassLoader extends URLClassLoader {
                     cachedClasses.put(name, clazz);
                     return clazz;
                 } catch (ClassNotFoundException e) {
-                    invalidClasses.add(name);
+                    invalidClasses.put(name, e);
                     throw e;
                 }
             }
@@ -187,12 +188,13 @@ public class LaunchClassLoader extends URLClassLoader {
             cachedClasses.put(transformedName, clazz);
             return clazz;
         } catch (Throwable e) {
-            invalidClasses.add(name);
+            ClassNotFoundException classNotFoundException = new ClassNotFoundException(name, e);
+            invalidClasses.put(name, classNotFoundException);
             if (DEBUG) {
                 LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of %s", name);
                 LogManager.getLogger("LaunchWrapper").log(Level.ERROR, "Exception encountered attempting classloading of %s", e);
             }
-            throw new ClassNotFoundException(name, e);
+            throw classNotFoundException;
         }
     }
 
