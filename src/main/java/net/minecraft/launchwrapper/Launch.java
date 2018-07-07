@@ -106,14 +106,14 @@ public class Launch {
                     final String tweakName = it.next();
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
-                        LOGGER.warn("Tweak class name %s has already been visited -- skipping", tweakName);
+                        LOGGER.warn("Tweak class name {} has already been visited -- skipping", tweakName);
                         // remove the tweaker from the stack otherwise it will create an infinite loop
                         it.remove();
                         continue;
                     } else {
                         allTweakerNames.add(tweakName);
                     }
-                    LOGGER.info("Loading tweak class name %s", tweakName);
+                    LOGGER.info("Loading tweak class name {}", tweakName);
 
                     // Ensure we allow the tweak class to load with the parent classloader
                     classLoader.addClassLoaderExclusion(tweakName.substring(0, tweakName.lastIndexOf('.')));
@@ -124,7 +124,7 @@ public class Launch {
                     it.remove();
                     // If we haven't visited a tweaker yet, the first will become the 'primary' tweaker
                     if (primaryTweaker == null) {
-                        LOGGER.info("Using primary tweak class name %s", tweakName);
+                        LOGGER.info("Using primary tweak class name {}", tweakName);
                         primaryTweaker = tweaker;
                     }
                 }
@@ -132,7 +132,7 @@ public class Launch {
                 // Now, iterate all the tweakers we just instantiated
                 for (final Iterator<ITweaker> it = tweakers.iterator(); it.hasNext(); ) {
                     final ITweaker tweaker = it.next();
-                    LOGGER.info("Calling tweak class %s", tweaker.getClass().getName());
+                    LOGGER.info("Calling tweak class {}", tweaker.getClass().getName());
                     tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
                     tweaker.injectIntoClassLoader(classLoader);
                     allTweakers.add(tweaker);
@@ -153,7 +153,7 @@ public class Launch {
             final Class<?> clazz = Class.forName(launchTarget, false, classLoader);
             final Method mainMethod = clazz.getMethod("main", String[].class);
 
-            LOGGER.info("Launching wrapped minecraft {%s}", launchTarget);
+            LOGGER.info("Launching wrapped minecraft {{}}", launchTarget);
             mainMethod.invoke(null, (Object) argumentList.toArray(new String[0]));
         } catch (Exception e) {
             LOGGER.error("Unable to launch", e);
