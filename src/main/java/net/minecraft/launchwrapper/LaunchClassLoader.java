@@ -1,13 +1,13 @@
 package net.minecraft.launchwrapper;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.net.JarURLConnection;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLConnection;
+import java.net.*;
+import java.nio.file.*;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.*;
@@ -17,9 +17,12 @@ import java.util.jar.Attributes.Name;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.zip.Adler32;
 
 public class LaunchClassLoader extends URLClassLoader {
     private static final Logger LOGGER = LogManager.getLogger("LaunchWrapper");
+    private static final Gson GSON = new GsonBuilder().create();
+
     public static final int BUFFER_SIZE = 1 << 12;
     private List<URL> sources;
     private ClassLoader parent = getClass().getClassLoader();
@@ -27,6 +30,9 @@ public class LaunchClassLoader extends URLClassLoader {
     private List<IClassTransformer> transformers = new ArrayList<>(2);
     private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<>();
     private Map<String, ClassNotFoundException> invalidClasses = new HashMap<>(1000);
+
+    private FileSystem cacheFileSystem;
+    private CachedClassInfo cachedClassInfo;
 
     private Set<String> classLoaderExceptions = new HashSet<>();
     private Set<String> transformerExceptions = new HashSet<>();
@@ -65,6 +71,8 @@ public class LaunchClassLoader extends URLClassLoader {
         addTransformerExclusion("org.bouncycastle.");
         addTransformerExclusion("net.minecraft.launchwrapper.injector.");
 
+        initializeClassCacheSystem();
+
         if (DEBUG_SAVE) {
             int x = 1;
             tempFolder = new File(Launch.minecraftHome, "CLASSLOADER_TEMP");
@@ -84,6 +92,85 @@ public class LaunchClassLoader extends URLClassLoader {
         if (TIMINGS_ENABLED) {
             transformerTimings = new HashMap<>();
         }
+    }
+
+    private void initializeClassCacheSystem() {
+        long startTime = System.nanoTime();
+
+        File classCachesZip = new File(Launch.minecraftHome, "class_cache.zip");
+        Map<String, String> env = new HashMap<>();
+        env.put("create", "true");
+        try {
+            URI classCachesURI = classCachesZip.toURI(); // here
+            URI classCachesZipURI = new URI("jar:" + classCachesURI.getScheme(), classCachesURI.getPath(), null);
+            cacheFileSystem = FileSystems.newFileSystem(classCachesZipURI, env, null);
+        } catch (Throwable t) {
+            if (classCachesZip.exists()) {
+                LOGGER.error("Failed to read class caches", t);
+                try {
+                    classCachesZip.delete();
+                    URI classCachesURI = classCachesZip.toURI(); // here
+                    URI classCahcesZipURI = new URI("jar:" + classCachesURI.getScheme(), classCachesURI.getPath(), null);
+                    cacheFileSystem = FileSystems.newFileSystem(classCahcesZipURI, env, null);
+                } catch (IOException | URISyntaxException e) {
+                    throw new RuntimeException("Could not create cached_classes.zip", e);
+                }
+            } else {
+                throw t instanceof RuntimeException ? (RuntimeException) t : new RuntimeException("Could not create cached_classes.zip", t);
+            }
+        }
+
+        Path classInfoCacheFile = cacheFileSystem.getPath("cached_class_info.json");
+
+        long result;
+        try {
+            Adler32 adler32 = new Adler32();
+
+            File modsFolder = new File(Launch.minecraftHome, "mods");
+            for (File modFile : modsFolder.listFiles()) {
+                if (modFile.isFile()) {
+                    adler32.update(Files.readAllBytes(modFile.toPath()));
+                }
+            }
+
+            result = adler32.getValue();
+        } catch (IOException e1) {
+            throw new RuntimeException(e1);
+        }
+        long modsHash = result;
+
+        try {
+            if (Files.exists(classInfoCacheFile)) {
+                try (Reader reader = new InputStreamReader(Files.newInputStream(classInfoCacheFile))) {
+                    cachedClassInfo = GSON.fromJson(reader, CachedClassInfo.class);
+                }
+
+                if (modsHash != cachedClassInfo.modsHash) {
+                    LOGGER.info("Mods hash changed, creating new cache: " + modsHash + " != " + cachedClassInfo.modsHash);
+                    cachedClassInfo = null;
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.error("Failed to read cached_class_info.json", t);
+        }
+
+        if (cachedClassInfo == null) {
+            cachedClassInfo = new CachedClassInfo();
+            cachedClassInfo.modsHash = modsHash;
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            // TODO: Doesn't always log message, log4j shutdown hook needs to run after this one
+            try {
+                Files.write(classInfoCacheFile, GSON.toJson(cachedClassInfo).getBytes(), StandardOpenOption.CREATE);
+                cacheFileSystem.close();
+                LOGGER.info("Saved caches successfully");
+            } catch (Throwable t) {
+                LOGGER.error("Failed to save caches", t);
+            }
+        }));
+
+        LOGGER.info("Initialized cache system in {} ns", System.nanoTime() - startTime);
     }
 
     public void registerTransformer(String transformerClassName) {
@@ -133,12 +220,21 @@ public class LaunchClassLoader extends URLClassLoader {
         }
 
         try {
-            final String transformedName = transformName(name);
+            String transformedName = cachedClassInfo.transformedClassNames.get(name);
+            if (transformedName == null) {
+                transformedName = transformName(name);
+                cachedClassInfo.transformedClassNames.put(name, transformedName);
+            }
+
             if (cachedClasses.containsKey(transformedName)) {
                 return cachedClasses.get(transformedName);
             }
 
-            final String untransformedName = untransformName(name);
+            String untransformedName = cachedClassInfo.untransformedClassNames.get(name);
+            if (untransformedName == null) {
+                untransformedName = untransformName(name);
+                cachedClassInfo.untransformedClassNames.put(name, untransformedName);
+            }
 
             final int lastDot = untransformedName.lastIndexOf('.');
             final String packageName = lastDot == -1 ? "" : untransformedName.substring(0, lastDot);
@@ -179,7 +275,59 @@ public class LaunchClassLoader extends URLClassLoader {
                 }
             }
 
-            final byte[] transformedClass = runTransformers(untransformedName, transformedName, getClassBytes(untransformedName));
+            // Get class bytes
+            byte[] untransformedClass = getClassBytes(untransformedName);
+
+            if (untransformedClass == null) {
+                byte[] transformedClass = runTransformers(untransformedName, transformedName, untransformedClass);
+                CodeSource codeSource = urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
+                Class<?> clazz = defineClass(transformedName, transformedClass, 0, transformedClass.length, codeSource);
+                cachedClasses.put(transformedName, clazz);
+                return clazz;
+            }
+
+            // Calculate untransformed class hash
+            Adler32 adler32 = new Adler32();
+            adler32.update(untransformedClass);
+            long untransformedClassHash = adler32.getValue();
+
+            // Try getting the class from cache
+            byte[] transformedClass = null;
+            long transformedClassHash = cachedClassInfo.transformedClassHashes.getOrDefault(untransformedClassHash, 0L);
+
+            if (transformedClassHash != 0) {
+                try {
+                    if (transformedClassHash == untransformedClassHash) {
+                        transformedClass = untransformedClass;
+                    } else {
+                        transformedClass = getFromCache(transformedClassHash);
+                    }
+
+                } catch (Throwable t) {
+                    LOGGER.error("Failed to read cached class {}", name, t);
+                }
+            }
+
+            // Transform the class
+            if (transformedClass == null) {
+                transformedClass = runTransformers(untransformedName, transformedName, untransformedClass);
+
+                // Calculate transformed class hash
+                adler32.reset();
+                adler32.update(transformedClass);
+                transformedClassHash = adler32.getValue();
+
+                try {
+                    // Cache the transformed class
+                    if (transformedClassHash != untransformedClassHash) {
+                        saveToCache(transformedClassHash, transformedClass);
+                    }
+                    cachedClassInfo.transformedClassHashes.put(untransformedClassHash, transformedClassHash);
+                } catch (Throwable t) {
+                    LOGGER.error("Failed to saving class to cache {}", name, t);
+                }
+            }
+
             if (DEBUG_SAVE) {
                 saveTransformedClass(transformedClass, transformedName);
             }
@@ -195,6 +343,18 @@ public class LaunchClassLoader extends URLClassLoader {
                 LOGGER.error("Exception encountered attempting classloading of {}", name, e);
             }
             throw classNotFoundException;
+        }
+    }
+
+    private byte[] getFromCache(long hash) throws IOException {
+        return Files.readAllBytes(cacheFileSystem.getPath(Long.toHexString(hash)));
+    }
+
+    private void saveToCache(long hash, byte[] data) throws IOException {
+        Path path = cacheFileSystem.getPath(Long.toHexString(hash));
+
+        if (!Files.exists(path)) {
+            Files.write(path, data);
         }
     }
 
