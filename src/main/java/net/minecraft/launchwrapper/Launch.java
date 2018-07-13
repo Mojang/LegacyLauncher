@@ -18,18 +18,39 @@ import java.util.Set;
 
 import org.apache.logging.log4j.Level;
 
+/**
+ * The main class of the launch wrapper.
+ * 
+ * @author cpw, Erik Broes, Mumfrey, and Nathan Adams
+ *
+ */
 public class Launch {
     private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
+    
+    /**
+     * The game dir of Minecraft.
+     */
     public static File minecraftHome;
+    
+    /**
+     * The asset dir of Minecraft.
+     */
     public static File assetsDir;
+    
+    /**
+     * A map that contains information that tweakers can access.
+     */
     public static Map<String,Object> blackboard;
-
+    
     public static void main(String[] args) {
         new Launch().launch(args);
     }
-
+    
+    /**
+     * The class loader to register transformers to.
+     */
     public static LaunchClassLoader classLoader;
-
+    
     private Launch() {
         final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
         classLoader = new LaunchClassLoader(ucl.getURLs());
