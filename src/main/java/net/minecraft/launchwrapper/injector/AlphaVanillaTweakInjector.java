@@ -18,15 +18,31 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A transformer for the alpha versions of Minecraft. Even though this implements {@link IClassTransformer}, it does not make any adjustments to the bytecode. Currently, the only thing this class does is it has a custom launch target for indev/alpha versions of Minecraft.
+ * 
+ * @author Nathan Adams and cpw
+ *
+ */
 public class AlphaVanillaTweakInjector implements IClassTransformer {
     public AlphaVanillaTweakInjector() {
     }
-
+    
     @Override
     public byte[] transform(final String name, final String transformedName, final byte[] bytes) {
         return bytes;
     }
-
+    
+    /**
+     * Launches indev/alpha versions of Minecraft.
+     * 
+     * @param args The launch arguments.
+     * @throws ClassNotFoundException If the applet class cannot be found.
+     * @throws NoSuchMethodException If the applet's constructor is not found.
+     * @throws IllegalAccessException If the applet's constructor is not visible.
+     * @throws InvocationTargetException If an exception occurs while instantiating the applet.
+     * @throws InstantiationException If the applet class is abstract.
+     */
     public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Class<?> clazz;
 

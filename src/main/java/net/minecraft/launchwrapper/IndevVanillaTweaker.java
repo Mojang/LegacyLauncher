@@ -3,6 +3,12 @@ package net.minecraft.launchwrapper;
 import java.io.File;
 import java.util.List;
 
+/**
+ * A tweaker to inject into the Indev versions of Minecraft.
+ * 
+ * @author Nathan Adams
+ *
+ */
 public class IndevVanillaTweaker implements ITweaker {
     private List<String> args;
 

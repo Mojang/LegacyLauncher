@@ -3,6 +3,12 @@ package net.minecraft.launchwrapper;
 import java.io.File;
 import java.util.List;
 
+/**
+ * A tweaker for the Alpha versions of Minecraft.
+ * 
+ * @author Nathan Adams
+ *
+ */
 public class AlphaVanillaTweaker implements ITweaker {
     private List<String> args;
 
