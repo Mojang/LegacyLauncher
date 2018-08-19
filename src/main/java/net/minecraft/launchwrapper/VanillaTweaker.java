@@ -3,6 +3,12 @@ package net.minecraft.launchwrapper;
 import java.io.File;
 import java.util.List;
 
+/**
+ * A tweaker for beta versions, and release versions 1.5 and below. This is the default tweaker.
+ * 
+ * @author Erik Broes and Nathan Adams
+ *
+ */
 public class VanillaTweaker implements ITweaker {
     private List<String> args;
 

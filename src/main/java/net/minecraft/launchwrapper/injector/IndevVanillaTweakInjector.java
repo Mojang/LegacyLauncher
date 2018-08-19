@@ -11,6 +11,12 @@ import java.util.ListIterator;
 
 import static org.objectweb.asm.Opcodes.*;
 
+/**
+ * A transformer for the indev versions of Minecraft.
+ * 
+ * @author Nathan Adams, LexManos, and cpw
+ *
+ */
 public class IndevVanillaTweakInjector implements IClassTransformer {
     public IndevVanillaTweakInjector() {
     }
@@ -79,7 +85,12 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
         classNode.accept(writer);
         return writer.toByteArray();
     }
-
+    
+    /**
+     * A call hook for the transformed bytecode of Minecraft.
+     * 
+     * @return The gameDir that was passed to the launch wrapper.
+     */
     public static File inject() {
         // Speed up imageloading
         System.out.println("Turning off ImageIO disk-caching");

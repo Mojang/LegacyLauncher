@@ -20,6 +20,12 @@ import java.util.List;
 
 import static org.objectweb.asm.Opcodes.*;
 
+/**
+ * A transformer for beta versions, and release versions 1.5 and below.
+ * 
+ * @author Erik Broes, Nathan Adams, cpw, and LexManos
+ *
+ */
 public class VanillaTweakInjector implements IClassTransformer {
     public VanillaTweakInjector() {
     }
@@ -74,7 +80,12 @@ public class VanillaTweakInjector implements IClassTransformer {
         classNode.accept(writer);
         return writer.toByteArray();
     }
-
+    
+    /**
+     * A call hook for the transformed bytecode of Minecraft.
+     * 
+     * @return The gameDir that was passed to the launch wrapper.
+     */
     public static File inject() {
         // Speed up imageloading
         System.out.println("Turning off ImageIO disk-caching");
@@ -86,7 +97,10 @@ public class VanillaTweakInjector implements IClassTransformer {
         System.out.println("Setting gameDir to: " + Launch.minecraftHome);
         return Launch.minecraftHome;
     }
-
+    
+    /**
+     * Loads the frame icons from the disk.
+     */
     public static void loadIconsOnFrames() {
         try {
             // Load icon from disk

@@ -18,7 +18,16 @@ import java.util.jar.Manifest;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
+/**
+ * The class loader to inject transformers in to.
+ * 
+ * @author cpw, Erik Broes, Mumfrey, and Nathan Adams
+ *
+ */
 public class LaunchClassLoader extends URLClassLoader {
+	/**
+	 * The size of the chunks when fully reading a stream.
+	 */
     public static final int BUFFER_SIZE = 1 << 12;
     private List<URL> sources;
     private ClassLoader parent = getClass().getClassLoader();
@@ -42,7 +51,12 @@ public class LaunchClassLoader extends URLClassLoader {
     private static final boolean DEBUG_FINER = DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingFiner", "false"));
     private static final boolean DEBUG_SAVE = DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingSave", "false"));
     private static File tempFolder = null;
-
+    
+    /**
+     * Creates a new {@link LaunchClassLoader}.
+     * 
+     * @param sources The URLs to load from.
+     */
     public LaunchClassLoader(URL[] sources) {
         super(sources, null);
         this.sources = new ArrayList<URL>(Arrays.asList(sources));
@@ -78,7 +92,12 @@ public class LaunchClassLoader extends URLClassLoader {
             }
         }
     }
-
+    
+    /**
+     * Registers a transformer. The transformer will be loaded with this class loader, not the parent one.
+     * 
+     * @param transformerClassName The transformer to inject.
+     */
     public void registerTransformer(String transformerClassName) {
         try {
             IClassTransformer transformer = (IClassTransformer) loadClass(transformerClassName).newInstance();
@@ -90,7 +109,12 @@ public class LaunchClassLoader extends URLClassLoader {
             LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
         }
     }
-
+    
+    /**
+     * Loads in a class. It is recommended to use {@link ClassLoader#loadClass} instead.
+     * 
+     * @param name The name of the class to load.
+     */
     @Override
     public Class<?> findClass(final String name) throws ClassNotFoundException {
         if (invalidClasses.contains(name)) {
@@ -275,13 +299,23 @@ public class LaunchClassLoader extends URLClassLoader {
         }
         return basicClass;
     }
-
+    
+    /**
+     * Adds a URL for the class loader to check.
+     * 
+     * @param url The url to add.
+     */
     @Override
     public void addURL(final URL url) {
         super.addURL(url);
         sources.add(url);
     }
-
+    
+    /**
+     * Gets the URL list.
+     * 
+     * @return A list of URLs that this class loader checks.
+     */
     public List<URL> getSources() {
         return sources;
     }
@@ -320,19 +354,41 @@ public class LaunchClassLoader extends URLClassLoader {
         }
         return buffer;
     }
-
+    
+    /**
+     * Gets the transformers injected.
+     * 
+     * @return An immutable list of transformers.
+     */
     public List<IClassTransformer> getTransformers() {
         return Collections.unmodifiableList(transformers);
     }
-
+    
+    /**
+     * Adds the given prefix to the class loader exclusion list. Classes that have a prefix in this list will be loaded with the parent class loader.
+     * 
+     * @param toExclude The prefix to exclude.
+     */
     public void addClassLoaderExclusion(String toExclude) {
         classLoaderExceptions.add(toExclude);
     }
-
+    
+    /**
+     * Adds the given prefix to the transformer exclusion list. Classes that have a prefix in this list will be loaded without transformers being run on them.
+     * 
+     * @param toExclude The prefix to exclude.
+     */
     public void addTransformerExclusion(String toExclude) {
         transformerExceptions.add(toExclude);
     }
-
+    
+    /**
+     * Gets the bytecode of a class.
+     * 
+     * @param name The name of the class.
+     * @return The untransformed bytecode of the class.
+     * @throws IOException If the class loader fails to open a connection to the URL.
+     */
     public byte[] getClassBytes(String name) throws IOException {
         if (negativeResourceCache.contains(name)) {
             return null;
@@ -380,7 +436,12 @@ public class LaunchClassLoader extends URLClassLoader {
             }
         }
     }
-
+    
+    /**
+     * Removes entries that were previously marked invalid.
+     * 
+     * @param entriesToClear The entries to remove.
+     */
     public void clearNegativeEntries(Set<String> entriesToClear) {
         negativeResourceCache.removeAll(entriesToClear);
     }

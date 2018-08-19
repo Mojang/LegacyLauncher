@@ -28,12 +28,12 @@ public class Launch {
     private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
     
     /**
-     * The game dir of Minecraft.
+     * The game dir of Minecraft. Changing this will change the gameDir value passed to tweakers.
      */
     public static File minecraftHome;
     
     /**
-     * The asset dir of Minecraft.
+     * The asset dir of Minecraft. Changing this will change the assetsDir value passed to tweakers.
      */
     public static File assetsDir;
     
@@ -42,49 +42,62 @@ public class Launch {
      */
     public static Map<String,Object> blackboard;
     
+    /**
+     * The main method. Please don't invoke this.
+     * 
+     * @param args The command line arguments.
+     */
     public static void main(String[] args) {
         new Launch().launch(args);
     }
     
     /**
-     * The class loader to register transformers to.
+     * The class loader to register transformers to. Changing this will change the class loader passed to tweakers.
      */
     public static LaunchClassLoader classLoader;
     
+    /**
+     * Creates a new instance of Launch. This is only used in the main method.
+     */
     private Launch() {
         final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
         classLoader = new LaunchClassLoader(ucl.getURLs());
         blackboard = new HashMap<String,Object>();
         Thread.currentThread().setContextClassLoader(classLoader);
     }
-
+    
+    /**
+     * Runs the launch wrapper. This is only used in the main method.
+     * 
+     * @param args The command line arguments.
+     */
     private void launch(String[] args) {
         final OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
-
+        
         final OptionSpec<String> profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
         final OptionSpec<File> gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
         final OptionSpec<File> assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
         final OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg().defaultsTo(DEFAULT_TWEAK);
         final OptionSpec<String> nonOption = parser.nonOptions();
-
+        
         final OptionSet options = parser.parse(args);
         minecraftHome = options.valueOf(gameDirOption);
         assetsDir = options.valueOf(assetsDirOption);
         final String profileName = options.valueOf(profileOption);
         final List<String> tweakClassNames = new ArrayList<String>(options.valuesOf(tweakClassOption));
-
+        
         final List<String> argumentList = new ArrayList<String>();
         // This list of names will be interacted with through tweakers. They can append to this list
         // any 'discovered' tweakers from their preferred mod loading mechanism
         // By making this object discoverable and accessible it's possible to perform
         // things like cascading of tweakers
         blackboard.put("TweakClasses", tweakClassNames);
-
+        
         // This argument list will be constructed from all tweakers. It is visible here so
         // all tweakers can figure out if a particular argument is present, and add it if not
         blackboard.put("ArgumentList", argumentList);
-
+        
         // This is to prevent duplicates - in case a tweaker decides to add itself or something
         final Set<String> allTweakerNames = new HashSet<String>();
         // The 'definitive' list of tweakers
@@ -127,7 +140,7 @@ public class Launch {
                         primaryTweaker = tweaker;
                     }
                 }
-
+                
                 // Now, iterate all the tweakers we just instantiated
                 for (final Iterator<ITweaker> it = tweakers.iterator(); it.hasNext(); ) {
                     final ITweaker tweaker = it.next();
@@ -146,7 +159,7 @@ public class Launch {
             for (final ITweaker tweaker : allTweakers) {
                 argumentList.addAll(Arrays.asList(tweaker.getLaunchArguments()));
             }
-
+            
             // Finally we turn to the primary tweaker, and let it tell us where to go to launch
             final String launchTarget = primaryTweaker.getLaunchTarget();
             final Class<?> clazz = Class.forName(launchTarget, false, classLoader);
