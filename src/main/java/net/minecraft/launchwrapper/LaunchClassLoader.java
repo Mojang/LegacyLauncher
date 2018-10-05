@@ -60,7 +60,6 @@ public class LaunchClassLoader extends URLClassLoader {
         addTransformerExclusion("org.objectweb.asm.");
         addTransformerExclusion("com.google.common.");
         addTransformerExclusion("org.bouncycastle.");
-        addTransformerExclusion("net.minecraft.launchwrapper.injector.");
 
         if (DEBUG_SAVE) {
             int x = 1;
