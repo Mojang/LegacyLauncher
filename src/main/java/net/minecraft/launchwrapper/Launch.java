@@ -6,15 +6,10 @@ import joptsimple.OptionSpec;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.logging.log4j.Level;
 
@@ -22,7 +17,7 @@ public class Launch {
     private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
     public static File minecraftHome;
     public static File assetsDir;
-    public static Map<String,Object> blackboard;
+    public static Map<String, Object> blackboard;
 
     public static void main(String[] args) {
         new Launch().launch(args);
@@ -31,9 +26,22 @@ public class Launch {
     public static LaunchClassLoader classLoader;
 
     private Launch() {
-        final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
-        classLoader = new LaunchClassLoader(ucl.getURLs());
-        blackboard = new HashMap<String,Object>();
+        List<URL> urls = new ArrayList<URL>();
+
+        if (getClass().getClassLoader() instanceof URLClassLoader) {
+            Collections.addAll(urls, ((URLClassLoader) getClass().getClassLoader()).getURLs());
+        } else {
+            for (String s : System.getProperty("java.class.path").split(";")) {
+                try {
+                    urls.add(new File(s).toURI().toURL());
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        classLoader = new LaunchClassLoader(urls.toArray(new URL[0]));
+        blackboard = new HashMap<String, Object>();
         Thread.currentThread().setContextClassLoader(classLoader);
     }
 
@@ -94,7 +102,7 @@ public class Launch {
                     LogWrapper.log(Level.INFO, "Loading tweak class name %s", tweakName);
 
                     // Ensure we allow the tweak class to load with the parent classloader
-                    classLoader.addClassLoaderExclusion(tweakName.substring(0,tweakName.lastIndexOf('.')));
+                    classLoader.addClassLoaderExclusion(tweakName.substring(0, tweakName.lastIndexOf('.')));
                     final ITweaker tweaker = (ITweaker) Class.forName(tweakName, true, classLoader).newInstance();
                     tweakers.add(tweaker);
 
