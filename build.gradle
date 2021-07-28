@@ -12,7 +12,7 @@ repositories {
 group = 'net.minecraft'
 archivesBaseName = 'launchwrapper'
 version = '1.12'
-sourceCompatibility = 1.6
+sourceCompatibility = 1.8
 
 dependencies {
     compile 'net.sf.jopt-simple:jopt-simple:4.5'
