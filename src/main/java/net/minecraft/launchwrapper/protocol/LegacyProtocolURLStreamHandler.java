@@ -1,7 +1,5 @@
 package net.minecraft.launchwrapper.protocol;
 
-import sun.net.www.protocol.http.HttpURLConnection;
-
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -22,6 +20,11 @@ public class LegacyProtocolURLStreamHandler extends URLStreamHandler {
                 return new CapeURLConnection(url);
         }
 
-        return new HttpURLConnection(url, null);
+        try {
+            return defaultHttpConnectionClass.getConstructor(URL.class, Proxy.class).newInstance(url, null);
+        } catch (Exception e) {
+            // If the constructor isn't found, you can log that out. It's not expected.
+            return null;
+        }
     }
 }
