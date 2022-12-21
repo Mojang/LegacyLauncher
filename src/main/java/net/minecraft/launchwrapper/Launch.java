@@ -15,8 +15,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.net.URL;
 
 import org.apache.logging.log4j.Level;
+
+import net.minecraft.launchwrapper.protocol.LegacyProtocolURLStreamHandlerFactory;
 
 public class Launch {
     private static final String DEFAULT_TWEAK = "net.minecraft.launchwrapper.VanillaTweaker";
@@ -31,6 +34,7 @@ public class Launch {
     public static LaunchClassLoader classLoader;
 
     private Launch() {
+        URL.setURLStreamHandlerFactory(new LegacyProtocolURLStreamHandlerFactory());
         final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
         classLoader = new LaunchClassLoader(ucl.getURLs());
         blackboard = new HashMap<String,Object>();

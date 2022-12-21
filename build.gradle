@@ -11,15 +11,17 @@ repositories {
 
 group = 'net.minecraft'
 archivesBaseName = 'launchwrapper'
-version = '1.12'
+version = '1.13'
 sourceCompatibility = 1.6
 
 dependencies {
     compile 'net.sf.jopt-simple:jopt-simple:4.5'
     compile 'org.ow2.asm:asm-debug-all:5.0.3'
     compile 'org.lwjgl.lwjgl:lwjgl:2.9.1'
-    compile 'org.apache.logging.log4j:log4j-core:2.0-beta9'
-    compile 'org.apache.logging.log4j:log4j-api:2.0-beta9'
+    compile 'org.apache.logging.log4j:log4j-core:2.16.0'
+    compile 'org.apache.logging.log4j:log4j-api:2.16.0'
+    compile 'org.apache.logging.log4j:log4j-slf4j18-impl:2.16.0'
+    compile 'com.mojang:authlib:2.3.31'
 }
 
 task sourcesJar(type: Jar) {
