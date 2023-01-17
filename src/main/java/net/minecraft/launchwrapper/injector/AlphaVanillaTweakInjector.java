@@ -1,9 +1,5 @@
 package net.minecraft.launchwrapper.injector;
 
-import net.minecraft.launchwrapper.IClassTransformer;
-import net.minecraft.launchwrapper.Launch;
-
-import javax.swing.*;
 import java.applet.Applet;
 import java.applet.AppletStub;
 import java.awt.*;
@@ -17,17 +13,21 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import javax.swing.*;
+import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.Launch;
 
 public class AlphaVanillaTweakInjector implements IClassTransformer {
-    public AlphaVanillaTweakInjector() {
-    }
+    public AlphaVanillaTweakInjector() {}
 
     @Override
     public byte[] transform(final String name, final String transformedName, final byte[] bytes) {
         return bytes;
     }
 
-    public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public static void main(String[] args)
+            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException,
+                    InstantiationException {
         Class<?> clazz;
 
         try {
@@ -36,7 +36,8 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
             clazz = getaClass("com.mojang.minecraft.MinecraftApplet");
         }
 
-        System.out.println("AlphaVanillaTweakInjector.class.getClassLoader() = " + AlphaVanillaTweakInjector.class.getClassLoader());
+        System.out.println("AlphaVanillaTweakInjector.class.getClassLoader() = "
+                + AlphaVanillaTweakInjector.class.getClassLoader());
         Constructor<?> constructor = clazz.getConstructor();
         Object object = constructor.newInstance();
 
@@ -91,7 +92,6 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
                 System.exit(1);
             }
         });
-
 
         class LauncherFake extends Applet implements AppletStub {
             private static final long serialVersionUID = 1L;
@@ -167,7 +167,8 @@ public class AlphaVanillaTweakInjector implements IClassTransformer {
         Class<?> clazz = getaClass(name);
 
         for (Field field : clazz.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers()) && field.getType().getName().equals("java.io.File")) {
+            if (Modifier.isStatic(field.getModifiers())
+                    && field.getType().getName().equals("java.io.File")) {
                 return field;
             }
         }

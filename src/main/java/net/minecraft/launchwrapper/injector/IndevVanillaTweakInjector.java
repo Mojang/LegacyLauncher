@@ -1,19 +1,17 @@
 package net.minecraft.launchwrapper.injector;
 
+import static org.objectweb.asm.Opcodes.*;
+
+import java.io.File;
+import java.util.ListIterator;
+import javax.imageio.ImageIO;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
-import javax.imageio.ImageIO;
-import java.io.File;
-import java.util.ListIterator;
-
-import static org.objectweb.asm.Opcodes.*;
-
 public class IndevVanillaTweakInjector implements IClassTransformer {
-    public IndevVanillaTweakInjector() {
-    }
+    public IndevVanillaTweakInjector() {}
 
     @Override
     public byte[] transform(final String name, final String transformedName, final byte[] bytes) {
@@ -69,7 +67,13 @@ public class IndevVanillaTweakInjector implements IClassTransformer {
                     }
 
                     instruction = iterator.next();
-                    runMethod.instructions.insertBefore(instruction, new MethodInsnNode(INVOKESTATIC, "net/minecraft/launchwrapper/injector/IndevVanillaTweakInjector", "inject", "()Ljava/io/File;"));
+                    runMethod.instructions.insertBefore(
+                            instruction,
+                            new MethodInsnNode(
+                                    INVOKESTATIC,
+                                    "net/minecraft/launchwrapper/injector/IndevVanillaTweakInjector",
+                                    "inject",
+                                    "()Ljava/io/File;"));
                     runMethod.instructions.insertBefore(instruction, new VarInsnNode(ASTORE, 2));
                 }
             }

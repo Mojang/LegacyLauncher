@@ -18,6 +18,7 @@ public class LogWrapper {
     public static void retarget(Logger to) {
         log.myLog = to;
     }
+
     public static void log(String logChannel, Level level, String format, Object... data) {
         makeLog(logChannel);
         LogManager.getLogger(logChannel).log(level, String.format(format, data));

@@ -1,5 +1,15 @@
 package net.minecraft.launchwrapper.injector;
 
+import static org.objectweb.asm.Opcodes.*;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
+import javax.imageio.ImageIO;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
 import org.lwjgl.opengl.Display;
@@ -9,20 +19,8 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.objectweb.asm.Opcodes.*;
-
 public class VanillaTweakInjector implements IClassTransformer {
-    public VanillaTweakInjector() {
-    }
+    public VanillaTweakInjector() {}
 
     @Override
     public byte[] transform(final String name, final String transformedName, final byte[] bytes) {
@@ -64,7 +62,11 @@ public class VanillaTweakInjector implements IClassTransformer {
         injectedMethod.visitLabel(label);
         injectedMethod.visitLineNumber(9001, label); // Linenumber which shows up in the stacktrace
         // Call the method below
-        injectedMethod.visitMethodInsn(INVOKESTATIC, "net/minecraft/launchwrapper/injector/VanillaTweakInjector", "inject", "()Ljava/io/File;");
+        injectedMethod.visitMethodInsn(
+                INVOKESTATIC,
+                "net/minecraft/launchwrapper/injector/VanillaTweakInjector",
+                "inject",
+                "()Ljava/io/File;");
         // Store the result in the workDir variable.
         injectedMethod.visitFieldInsn(PUTSTATIC, "net/minecraft/client/Minecraft", workDirNode.name, "Ljava/io/File;");
 
@@ -93,10 +95,7 @@ public class VanillaTweakInjector implements IClassTransformer {
             final File smallIcon = new File(Launch.assetsDir, "icons/icon_16x16.png");
             final File bigIcon = new File(Launch.assetsDir, "icons/icon_32x32.png");
             System.out.println("Loading current icons for window from: " + smallIcon + " and " + bigIcon);
-            Display.setIcon(new ByteBuffer[]{
-                    loadIcon(smallIcon),
-                    loadIcon(bigIcon)
-            });
+            Display.setIcon(new ByteBuffer[] {loadIcon(smallIcon), loadIcon(bigIcon)});
             Frame[] frames = Frame.getFrames();
 
             if (frames != null) {

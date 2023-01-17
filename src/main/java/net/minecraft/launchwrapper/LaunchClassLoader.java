@@ -14,7 +14,6 @@ import java.util.jar.Attributes.Name;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
@@ -29,18 +28,23 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private Set<String> classLoaderExceptions = new HashSet<String>();
     private Set<String> transformerExceptions = new HashSet<String>();
-    private Map<String,byte[]> resourceCache = new ConcurrentHashMap<String,byte[]>(1000);
+    private Map<String, byte[]> resourceCache = new ConcurrentHashMap<String, byte[]>(1000);
     private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private IClassNameTransformer renameTransformer;
 
     private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<byte[]>();
 
-    private static final String[] RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
+    private static final String[] RESERVED_NAMES = {
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1",
+        "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("legacy.debugClassLoading", "false"));
-    private static final boolean DEBUG_FINER = DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingFiner", "false"));
-    private static final boolean DEBUG_SAVE = DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingSave", "false"));
+    private static final boolean DEBUG_FINER =
+            DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingFiner", "false"));
+    private static final boolean DEBUG_SAVE =
+            DEBUG && Boolean.parseBoolean(System.getProperty("legacy.debugClassLoadingSave", "false"));
     private static File tempFolder = null;
 
     public LaunchClassLoader(URL[] sources) {
@@ -73,7 +77,9 @@ public class LaunchClassLoader extends URLClassLoader {
                 LogWrapper.info("DEBUG_SAVE enabled, but 10 temp directories already exist, clean them and try again.");
                 tempFolder = null;
             } else {
-                LogWrapper.info("DEBUG_SAVE Enabled, saving all classes to \"%s\"", tempFolder.getAbsolutePath().replace('\\', '/'));
+                LogWrapper.info(
+                        "DEBUG_SAVE Enabled, saving all classes to \"%s\"",
+                        tempFolder.getAbsolutePath().replace('\\', '/'));
                 tempFolder.mkdirs();
             }
         }
@@ -81,13 +87,18 @@ public class LaunchClassLoader extends URLClassLoader {
 
     public void registerTransformer(String transformerClassName) {
         try {
-            IClassTransformer transformer = (IClassTransformer) loadClass(transformerClassName).newInstance();
+            IClassTransformer transformer =
+                    (IClassTransformer) loadClass(transformerClassName).newInstance();
             transformers.add(transformer);
             if (transformer instanceof IClassNameTransformer && renameTransformer == null) {
                 renameTransformer = (IClassNameTransformer) transformer;
             }
         } catch (Exception e) {
-            LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
+            LogWrapper.log(
+                    Level.ERROR,
+                    e,
+                    "A critical problem occurred registering the ASM transformer class %s",
+                    transformerClassName);
         }
     }
 
@@ -151,9 +162,13 @@ public class LaunchClassLoader extends URLClassLoader {
                             pkg = definePackage(packageName, manifest, jarURLConnection.getJarFileURL());
                         } else {
                             if (pkg.isSealed() && !pkg.isSealed(jarURLConnection.getJarFileURL())) {
-                                LogWrapper.severe("The jar file %s is trying to seal already secured path %s", jarFile.getName(), packageName);
+                                LogWrapper.severe(
+                                        "The jar file %s is trying to seal already secured path %s",
+                                        jarFile.getName(), packageName);
                             } else if (isSealed(packageName, manifest)) {
-                                LogWrapper.severe("The jar file %s has a security seal for path %s, but that path is defined and not secure", jarFile.getName(), packageName);
+                                LogWrapper.severe(
+                                        "The jar file %s has a security seal for path %s, but that path is defined and not secure",
+                                        jarFile.getName(), packageName);
                             }
                         }
                     }
@@ -162,25 +177,31 @@ public class LaunchClassLoader extends URLClassLoader {
                     if (pkg == null) {
                         pkg = definePackage(packageName, null, null, null, null, null, null, null);
                     } else if (pkg.isSealed()) {
-                        LogWrapper.severe("The URL %s is defining elements for sealed path %s", urlConnection.getURL(), packageName);
+                        LogWrapper.severe(
+                                "The URL %s is defining elements for sealed path %s",
+                                urlConnection.getURL(), packageName);
                     }
                 }
             }
 
-            final byte[] transformedClass = runTransformers(untransformedName, transformedName, getClassBytes(untransformedName));
+            final byte[] transformedClass =
+                    runTransformers(untransformedName, transformedName, getClassBytes(untransformedName));
             if (DEBUG_SAVE) {
                 saveTransformedClass(transformedClass, transformedName);
             }
 
-            final CodeSource codeSource = urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
-            final Class<?> clazz = defineClass(transformedName, transformedClass, 0, transformedClass.length, codeSource);
+            final CodeSource codeSource =
+                    urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
+            final Class<?> clazz =
+                    defineClass(transformedName, transformedClass, 0, transformedClass.length, codeSource);
             cachedClasses.put(transformedName, clazz);
             return clazz;
         } catch (Throwable e) {
             invalidClasses.add(name);
             if (DEBUG) {
                 LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of %s", name);
-                LogManager.getLogger("LaunchWrapper").log(Level.ERROR, "Exception encountered attempting classloading of %s", e);
+                LogManager.getLogger("LaunchWrapper")
+                        .log(Level.ERROR, "Exception encountered attempting classloading of %s", e);
             }
             throw new ClassNotFoundException(name, e);
         }
@@ -203,7 +224,9 @@ public class LaunchClassLoader extends URLClassLoader {
         }
 
         try {
-            LogWrapper.fine("Saving transformed class \"%s\" to \"%s\"", transformedName, outFile.getAbsolutePath().replace('\\', '/'));
+            LogWrapper.fine(
+                    "Saving transformed class \"%s\" to \"%s\"",
+                    transformedName, outFile.getAbsolutePath().replace('\\', '/'));
 
             final OutputStream output = new FileOutputStream(outFile);
             output.write(data);
@@ -260,14 +283,22 @@ public class LaunchClassLoader extends URLClassLoader {
 
     private byte[] runTransformers(final String name, final String transformedName, byte[] basicClass) {
         if (DEBUG_FINER) {
-            LogWrapper.finest("Beginning transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+            LogWrapper.finest(
+                    "Beginning transform of {%s (%s)} Start Length: %d",
+                    name, transformedName, (basicClass == null ? 0 : basicClass.length));
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
-                LogWrapper.finest("Before Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                LogWrapper.finest(
+                        "Before Transformer {%s (%s)} %s: %d",
+                        name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
                 basicClass = transformer.transform(name, transformedName, basicClass);
-                LogWrapper.finest("After  Transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
+                LogWrapper.finest(
+                        "After  Transformer {%s (%s)} %s: %d",
+                        name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
             }
-            LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
+            LogWrapper.finest(
+                    "Ending transform of {%s (%s)} Start Length: %d",
+                    name, transformedName, (basicClass == null ? 0 : basicClass.length));
         } else {
             for (final IClassTransformer transformer : transformers) {
                 basicClass = transformer.transform(name, transformedName, basicClass);

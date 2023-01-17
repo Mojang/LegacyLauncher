@@ -12,5 +12,4 @@ public interface ITweaker {
     String getLaunchTarget();
 
     String[] getLaunchArguments();
-
 }

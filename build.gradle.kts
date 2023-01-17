@@ -1,5 +1,3 @@
-import org.gradle.jvm.toolchain.internal.DefaultToolchainSpec
-
 plugins {
   // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
   id("java-library")
@@ -18,10 +16,8 @@ java {
 }
 
 repositories {
-    maven {
-        url = uri("https://libraries.minecraft.net/")
-    }
-    mavenCentral()
+  maven { url = uri("https://libraries.minecraft.net/") }
+  mavenCentral()
 }
 
 spotless {
@@ -59,11 +55,7 @@ group = "net.minecraft"
 version = gitVersion()
 
 publishing {
-  publications {
-    create<MavenPublication>("launchwrapper") {
-      from(components["java"])
-    }
-  }
+  publications { create<MavenPublication>("launchwrapper") { from(components["java"]) } }
 
   repositories {
     maven {
@@ -76,4 +68,3 @@ publishing {
     }
   }
 }
-
