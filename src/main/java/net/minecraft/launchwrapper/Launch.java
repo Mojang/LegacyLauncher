@@ -2,6 +2,8 @@ package net.minecraft.launchwrapper;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,8 +31,23 @@ public class Launch {
     public static LaunchClassLoader classLoader;
 
     private Launch() {
-        final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
-        classLoader = new LaunchClassLoader(ucl.getURLs());
+        final ClassLoader rootLoader = getClass().getClassLoader();
+        final URL[] classpath;
+        if (rootLoader instanceof URLClassLoader) {
+            classpath = ((URLClassLoader) rootLoader).getURLs();
+        } else {
+            final String cpString = System.getProperty("java.class.path");
+            final String[] cpEntries = cpString.split(File.pathSeparator);
+            classpath = new URL[cpEntries.length];
+            for (int i = 0; i < cpEntries.length; i++) {
+                try {
+                    classpath[i] = new File(cpEntries[i]).toURI().toURL();
+                } catch (MalformedURLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+        classLoader = new LaunchClassLoader(classpath);
         blackboard = new HashMap<>();
         Thread.currentThread().setContextClassLoader(classLoader);
     }

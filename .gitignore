@@ -15,6 +15,7 @@ nbproject
 # various other potential build files
 /build/
 /out
+/logs/
 
 # Mac filesystem dust
 .DS_Store
