@@ -23,6 +23,6 @@ public class VanillaTweaker implements ITweaker {
 
     @Override
     public String[] getLaunchArguments() {
-        return args.toArray(new String[args.size()]);
+        return args.toArray(new String[0]);
     }
 }

@@ -22,18 +22,18 @@ public class LaunchClassLoader extends URLClassLoader {
     private List<URL> sources;
     private ClassLoader parent = getClass().getClassLoader();
 
-    private List<IClassTransformer> transformers = new ArrayList<IClassTransformer>(2);
-    private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<String, Class<?>>();
-    private Set<String> invalidClasses = new HashSet<String>(1000);
+    private List<IClassTransformer> transformers = new ArrayList<>(2);
+    private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<>();
+    private Set<String> invalidClasses = new HashSet<>(1000);
 
-    private Set<String> classLoaderExceptions = new HashSet<String>();
-    private Set<String> transformerExceptions = new HashSet<String>();
-    private Map<String, byte[]> resourceCache = new ConcurrentHashMap<String, byte[]>(1000);
-    private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private Set<String> classLoaderExceptions = new HashSet<>();
+    private Set<String> transformerExceptions = new HashSet<>();
+    private Map<String, byte[]> resourceCache = new ConcurrentHashMap<>(1000);
+    private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private IClassNameTransformer renameTransformer;
 
-    private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<byte[]>();
+    private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<>();
 
     private static final String[] RESERVED_NAMES = {
         "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1",
@@ -49,7 +49,7 @@ public class LaunchClassLoader extends URLClassLoader {
 
     public LaunchClassLoader(URL[] sources) {
         super(sources, null);
-        this.sources = new ArrayList<URL>(Arrays.asList(sources));
+        this.sources = new ArrayList<>(Arrays.asList(sources));
 
         // classloader exclusions
         addClassLoaderExclusion("java.");
@@ -87,8 +87,8 @@ public class LaunchClassLoader extends URLClassLoader {
 
     public void registerTransformer(String transformerClassName) {
         try {
-            IClassTransformer transformer =
-                    (IClassTransformer) loadClass(transformerClassName).newInstance();
+            IClassTransformer transformer = (IClassTransformer)
+                    loadClass(transformerClassName).getConstructor().newInstance();
             transformers.add(transformer);
             if (transformer instanceof IClassNameTransformer && renameTransformer == null) {
                 renameTransformer = (IClassNameTransformer) transformer;
