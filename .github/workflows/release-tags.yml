@@ -52,7 +52,7 @@ jobs:
             -f tag_name="${RELEASE_VERSION}" \
             --jq ".body" > "${CHANGELOG_FILE}"
           cat "${CHANGELOG_FILE}"
-          gh release create "${RELEASE_VERSION}" -F "${CHANGELOG_FILE}" ./plugin/build/libs/*.jar ./plugin/rfgJavacPlugin/build/libs/*.jar
+          gh release create "${RELEASE_VERSION}" -F "${CHANGELOG_FILE}" ./build/libs/*.jar
         shell: bash
         continue-on-error: true
         env:
