@@ -7,6 +7,7 @@ import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.security.CodeSigner;
 import java.security.CodeSource;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes;
@@ -77,7 +78,7 @@ public class LaunchClassLoader extends URLClassLoader {
                 LogWrapper.info("DEBUG_SAVE enabled, but 10 temp directories already exist, clean them and try again.");
                 tempFolder = null;
             } else {
-                LogWrapper.info(
+                LogWrapper.warning(
                         "DEBUG_SAVE Enabled, saving all classes to \"{}\"",
                         tempFolder.getAbsolutePath().replace('\\', '/'));
                 tempFolder.mkdirs();
@@ -92,6 +93,9 @@ public class LaunchClassLoader extends URLClassLoader {
             transformers.add(transformer);
             if (transformer instanceof IClassNameTransformer && renameTransformer == null) {
                 renameTransformer = (IClassNameTransformer) transformer;
+            }
+            if (DEBUG) {
+                LogWrapper.info("Registered transformer {}", transformerClassName);
             }
         } catch (Exception e) {
             LogWrapper.log(
@@ -189,9 +193,6 @@ public class LaunchClassLoader extends URLClassLoader {
 
             final byte[] transformedClass =
                     runTransformers(untransformedName, transformedName, getClassBytes(untransformedName));
-            if (DEBUG_SAVE) {
-                saveTransformedClass(transformedClass, transformedName);
-            }
 
             final CodeSource codeSource =
                     urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
@@ -204,14 +205,14 @@ public class LaunchClassLoader extends URLClassLoader {
             if (DEBUG) {
                 LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of {}", name);
                 LogManager.getLogger("LaunchWrapper")
-                        .log(Level.ERROR, "Exception encountered attempting classloading of {}", e);
+                        .log(Level.ERROR, "Exception encountered attempting classloading of {}", name, e);
             }
             throw new ClassNotFoundException(name, e);
         }
     }
 
     private void saveTransformedClass(final byte[] data, final String transformedName) {
-        if (tempFolder == null) {
+        if (tempFolder == null || data == null || transformedName == null) {
             return;
         }
 
@@ -232,9 +233,9 @@ public class LaunchClassLoader extends URLClassLoader {
                     transformedName,
                     outFile.getAbsolutePath().replace('\\', '/'));
 
-            final OutputStream output = new FileOutputStream(outFile);
-            output.write(data);
-            output.close();
+            try (OutputStream output = new FileOutputStream(outFile)) {
+                output.write(data);
+            }
         } catch (IOException ex) {
             LogWrapper.log(Level.WARN, ex, "Could not save transformed class \"{}\"", transformedName);
         }
@@ -285,13 +286,29 @@ public class LaunchClassLoader extends URLClassLoader {
         return null;
     }
 
+    private static byte[] EMPTY_BYTE_ARRAY = new byte[0];
+
     private byte[] runTransformers(final String name, final String transformedName, byte[] basicClass) {
+        MessageDigest hashers = null;
+        if (DEBUG_SAVE) {
+            try {
+                hashers = MessageDigest.getInstance("SHA-256");
+            } catch (Exception e) {
+                // no-op
+            }
+        }
         if (DEBUG_FINER) {
+            byte[] preTransformHash = EMPTY_BYTE_ARRAY;
+            if (hashers != null && basicClass != null) {
+                preTransformHash = hashers.digest(basicClass);
+                saveTransformedClass(basicClass, transformedName + "_000_pretransform");
+            }
             LogWrapper.finest(
                     "Beginning transform of [{} ({})] Start Length: {}",
                     name,
                     transformedName,
                     (basicClass == null ? 0 : basicClass.length));
+            int transformerId = 1;
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
                 LogWrapper.finest(
@@ -307,6 +324,18 @@ public class LaunchClassLoader extends URLClassLoader {
                         transformedName,
                         transName,
                         (basicClass == null ? 0 : basicClass.length));
+                if (hashers != null && basicClass != null) {
+                    hashers.reset();
+                    byte[] postTransformHash = hashers.digest(basicClass);
+                    if (!Arrays.equals(preTransformHash, postTransformHash)) {
+                        preTransformHash = postTransformHash;
+                        saveTransformedClass(
+                                basicClass,
+                                transformedName
+                                        + String.format("_%03d_%s", transformerId, transName.replace('.', '_')));
+                    }
+                }
+                transformerId++;
             }
             LogWrapper.finest(
                     "Ending transform of [{} ({})] Start Length: {}",

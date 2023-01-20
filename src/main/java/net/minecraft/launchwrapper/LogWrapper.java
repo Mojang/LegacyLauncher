@@ -21,26 +21,42 @@ public class LogWrapper {
 
     public static void log(String logChannel, Level level, String format, Object... data) {
         makeLog(logChannel);
-        LogManager.getLogger(logChannel).log(level, String.format(format, data));
+        if (format.contains("{}")) {
+            LogManager.getLogger(logChannel).log(level, format, data);
+        } else {
+            LogManager.getLogger(logChannel).log(level, String.format(format, data));
+        }
     }
 
     public static void log(Level level, String format, Object... data) {
         if (!configured) {
             configureLogging();
         }
-        log.myLog.log(level, String.format(format, data));
+        if (format.contains("{}")) {
+            log.myLog.log(level, format, data);
+        } else {
+            log.myLog.log(level, String.format(format, data));
+        }
     }
 
     public static void log(String logChannel, Level level, Throwable ex, String format, Object... data) {
         makeLog(logChannel);
-        LogManager.getLogger(logChannel).log(level, String.format(format, data), ex);
+        if (format.contains("{}")) {
+            LogManager.getLogger(logChannel).log(level, format, data, ex);
+        } else {
+            LogManager.getLogger(logChannel).log(level, String.format(format, data), ex);
+        }
     }
 
     public static void log(Level level, Throwable ex, String format, Object... data) {
         if (!configured) {
             configureLogging();
         }
-        log.myLog.log(level, String.format(format, data), ex);
+        if (format.contains("{}")) {
+            log.myLog.log(level, format, data);
+        } else {
+            log.myLog.log(level, String.format(format, data));
+        }
     }
 
     public static void severe(String format, Object... data) {
