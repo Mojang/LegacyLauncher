@@ -1,6 +1,7 @@
 package net.minecraft.launchwrapper;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -29,6 +30,7 @@ public class Launch {
     }
 
     public static LaunchClassLoader classLoader;
+    private static final PrintStream originalSysErr = System.err;
 
     private Launch() {
         final ClassLoader rootLoader = getClass().getClassLoader();
@@ -162,6 +164,8 @@ public class Launch {
             LogWrapper.info("Launching wrapped minecraft {%s}", launchTarget);
             mainMethod.invoke(null, (Object) argumentList.toArray(new String[0]));
         } catch (Exception e) {
+            originalSysErr.println(e.getMessage());
+            e.printStackTrace(originalSysErr);
             LogWrapper.log(Level.ERROR, e, "Unable to launch");
             System.exit(1);
         }

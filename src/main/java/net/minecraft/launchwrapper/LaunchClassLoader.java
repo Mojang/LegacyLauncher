@@ -31,6 +31,8 @@ public class LaunchClassLoader extends URLClassLoader {
     private Set<String> transformerExceptions = new HashSet<>();
     private Map<String, byte[]> resourceCache = new ConcurrentHashMap<>(1000);
     private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private Map<Package, Manifest> packageManifests = new ConcurrentHashMap<>(); // dummy for fastcraft
+    private static final Manifest EMPTY = new Manifest(); // dummy for fastcraft
 
     private IClassNameTransformer renameTransformer;
 
