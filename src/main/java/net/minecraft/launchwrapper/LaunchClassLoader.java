@@ -196,6 +196,15 @@ public class LaunchClassLoader extends URLClassLoader {
             final byte[] transformedClass =
                     runTransformers(untransformedName, transformedName, getClassBytes(untransformedName));
 
+            if (transformedClass == null) {
+                final String msg =
+                        "Class " + untransformedName + "|" + transformedName + " is null after running transformers";
+                System.err.println(msg);
+                final NullPointerException npe = new NullPointerException(msg);
+                npe.printStackTrace();
+                throw npe;
+            }
+
             final CodeSource codeSource =
                     urlConnection == null ? null : new CodeSource(urlConnection.getURL(), signers);
             final Class<?> clazz =
