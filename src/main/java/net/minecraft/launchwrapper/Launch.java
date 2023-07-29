@@ -109,14 +109,14 @@ public class Launch {
                     // Safety check - don't reprocess something we've already visited
                     if (allTweakerNames.contains(tweakName)) {
                         LogWrapper.log(
-                                Level.WARN, "Tweak class name %s has already been visited -- skipping", tweakName);
+                                Level.WARN, "Tweak class name {} has already been visited -- skipping", tweakName);
                         // remove the tweaker from the stack otherwise it will create an infinite loop
                         it.remove();
                         continue;
                     } else {
                         allTweakerNames.add(tweakName);
                     }
-                    LogWrapper.log(Level.INFO, "Loading tweak class name %s", tweakName);
+                    LogWrapper.log(Level.INFO, "Loading tweak class name {}", tweakName);
 
                     // Ensure we allow the tweak class to load with the parent classloader
                     classLoader.addClassLoaderExclusion(tweakName.substring(0, tweakName.lastIndexOf('.')));
@@ -129,7 +129,7 @@ public class Launch {
                     it.remove();
                     // If we haven't visited a tweaker yet, the first will become the 'primary' tweaker
                     if (primaryTweaker == null) {
-                        LogWrapper.log(Level.INFO, "Using primary tweak class name %s", tweakName);
+                        LogWrapper.log(Level.INFO, "Using primary tweak class name {}", tweakName);
                         primaryTweaker = tweaker;
                     }
                 }
@@ -139,7 +139,7 @@ public class Launch {
                     final ITweaker tweaker = it.next();
                     LogWrapper.log(
                             Level.INFO,
-                            "Calling tweak class %s",
+                            "Calling tweak class {}",
                             tweaker.getClass().getName());
                     tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
                     tweaker.injectIntoClassLoader(classLoader);

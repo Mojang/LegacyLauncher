@@ -55,7 +55,7 @@ public class LogWrapper {
         if (format.contains("{}")) {
             log.myLog.log(level, format, data);
         } else {
-            log.myLog.log(level, String.format(format, data));
+            log.myLog.log(level, String.format(format, data), ex);
         }
     }
 

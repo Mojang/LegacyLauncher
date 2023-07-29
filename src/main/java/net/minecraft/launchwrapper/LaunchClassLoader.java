@@ -103,8 +103,7 @@ public class LaunchClassLoader extends URLClassLoader {
             LogWrapper.log(
                     Level.ERROR,
                     e,
-                    "A critical problem occurred registering the ASM transformer class {}",
-                    transformerClassName);
+                    "A critical problem occurred registering the ASM transformer class " + transformerClassName);
         }
     }
 
@@ -214,9 +213,9 @@ public class LaunchClassLoader extends URLClassLoader {
         } catch (Throwable e) {
             invalidClasses.add(name);
             if (DEBUG) {
-                LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of {}", name);
+                LogWrapper.log(Level.TRACE, e, "Exception encountered attempting classloading of " + name);
                 LogManager.getLogger("LaunchWrapper")
-                        .log(Level.ERROR, "Exception encountered attempting classloading of {}", name, e);
+                        .log(Level.ERROR, "Exception encountered attempting classloading of " + name, e);
             }
             throw new ClassNotFoundException(name, e);
         }
@@ -248,7 +247,7 @@ public class LaunchClassLoader extends URLClassLoader {
                 output.write(data);
             }
         } catch (IOException ex) {
-            LogWrapper.log(Level.WARN, ex, "Could not save transformed class \"{}\"", transformedName);
+            LogWrapper.log(Level.WARN, ex, "Could not save transformed class \"" + transformedName + "\"");
         }
     }
 
